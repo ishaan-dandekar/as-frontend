@@ -81,16 +81,13 @@ export const githubApi = {
         }
     },
 
-    async getOAuthStartUrl(): Promise<GitHubOAuthStartResponse> {
+    async getOAuthStartUrl(frontendOrigin?: string): Promise<GitHubOAuthStartResponse> {
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-            console.log('[GitHub OAuth] Token present:', !!token);
-            console.log('[GitHub OAuth] Calling /user/github/oauth/start...');
-            const response = await api.get('/user/github/oauth/start');
-            console.log('[GitHub OAuth] Start response:', response.data);
+            const response = await api.get('/user/github/oauth/start', {
+                params: frontendOrigin ? { frontend_origin: frontendOrigin } : undefined,
+            });
             return response.data?.data as GitHubOAuthStartResponse;
         } catch (error) {
-            console.error('[GitHub OAuth] Start endpoint error:', error);
             throw error;
         }
     },
@@ -100,8 +97,10 @@ export const githubApi = {
             params: {
                 session_id: sessionId,
             },
+            headers: {
+                'X-GitHub-Session': sessionId,
+            },
         });
-
         return response.data?.data as GitHubStats;
     },
 
@@ -123,6 +122,7 @@ export const githubApi = {
     async getStats(username: string): Promise<GitHubStats> {
         try {
             const oauthSession = this.getStoredOAuthSession();
+
             if (oauthSession?.sessionId) {
                 try {
                     return await this.getAuthorizedStats(oauthSession.sessionId);

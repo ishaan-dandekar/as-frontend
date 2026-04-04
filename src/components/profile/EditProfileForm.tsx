@@ -10,12 +10,10 @@ import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { userApi } from '@/api/user';
 import { useRouter } from 'next/navigation';
-import { Github, Globe, MapPin, Camera } from 'lucide-react';
+import { Github, Globe, Camera } from 'lucide-react';
 
 const profileSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
     bio: z.string().max(160, 'Bio must be less than 160 characters').optional(),
-    location: z.string().optional(),
     githubUsername: z.string().optional(),
     website: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
@@ -34,9 +32,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: user.name,
             bio: user.bio || '',
-            location: user.location || '',
             githubUsername: user.githubUsername || '',
             website: user.website || '',
         },
@@ -75,7 +71,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
                 </div>
                 <div className="text-center sm:text-left">
                     <h3 className="text-lg font-semibold text-slate-900">Profile Picture</h3>
-                    <p className="text-sm text-slate-500">Click to upload a new image </p>
+                    <p className="text-sm text-slate-500">Synced from Google. Change it on Google to update it here.</p>
                 </div>
             </div>
 
@@ -88,15 +84,9 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
             <div className="grid gap-6 sm:grid-cols-2">
                 <Input
                     label="Full Name"
-                    {...register('name')}
-                    error={errors.name?.message}
-                />
-                <Input
-                    label="Location"
-                    placeholder="New York, NY"
-                    {...register('location')}
-                    error={errors.location?.message}
-                    icon={<MapPin className="h-4 w-4" />}
+                    value={user.name}
+                    disabled
+                    helperText="Name is synced from Google and cannot be edited here."
                 />
             </div>
 

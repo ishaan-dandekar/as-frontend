@@ -3,6 +3,7 @@
 import { Github, Star, GitFork, BookOpen, ExternalLink, Activity, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { githubApi, GitHubStats as GitHubStatsType } from '@/api/github';
 
 interface GitHubStatsProps {
@@ -10,6 +11,7 @@ interface GitHubStatsProps {
 }
 
 export function GitHubStats({ username }: GitHubStatsProps) {
+    const router = useRouter();
     const [hoveredStat, setHoveredStat] = useState<string | null>(null);
     const [isCardHovered, setIsCardHovered] = useState(false);
     const [stats, setStats] = useState<GitHubStatsType | null>(null);
@@ -74,6 +76,7 @@ export function GitHubStats({ username }: GitHubStatsProps) {
                         <motion.button 
                             whileHover={{ scale: 1.05, y: -2 }}
                             whileTap={{ scale: 0.95 }}
+                            onClick={() => router.push('/settings')}
                             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-700 to-slate-900 text-white text-sm font-semibold rounded-xl shadow-lg shadow-slate-500/25 hover:shadow-xl transition-shadow"
                         >
                             <span>Link Account</span>

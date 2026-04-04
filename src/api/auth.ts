@@ -20,6 +20,12 @@ type BackendUser = {
     created_at?: string;
 };
 
+function toTitleCase(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (char) => char.toUpperCase());
+}
+
 function normalizeDisplayName(user: BackendUser): string {
     const first = (user.first_name || '').trim();
     const last = (user.last_name || '').trim();
@@ -32,10 +38,10 @@ function normalizeDisplayName(user: BackendUser): string {
     ].filter(Boolean);
 
     const best = candidates.find((c) => !c.includes('@'));
-    if (best) return best;
+    if (best) return toTitleCase(best);
 
     const fallbackFromEmail = (user.email || '').split('@')[0]?.trim();
-    return fallbackFromEmail || 'User';
+    return fallbackFromEmail ? toTitleCase(fallbackFromEmail) : 'User';
 }
 
 function resolveRole(user: BackendUser, hintRole?: string): 'STUDENT' | 'DEPARTMENT' {
@@ -76,8 +82,10 @@ function mapUser(user: BackendUser, hintRole?: string) {
 }
 
 export const authApi = {
-    getGoogleOAuthUrl: async (): Promise<{ authorizationUrl: string }> => {
-        const response = await api.get('/auth/google/start');
+    getGoogleOAuthUrl: async (frontendOrigin?: string): Promise<{ authorizationUrl: string }> => {
+        const response = await api.get('/auth/google/start', {
+            params: frontendOrigin ? { frontend_origin: frontendOrigin } : undefined,
+        });
         return response.data?.data;
     },
 

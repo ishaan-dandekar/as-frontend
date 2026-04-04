@@ -18,7 +18,7 @@ export default function TeamsPage() {
 
     useEffect(() => {
         if (profileLoading || profile) return;
-        router.replace('/login');
+        router.replace('/');
     }, [profile, profileLoading, router]);
 
     const { data: teamsRes, isLoading, error } = useQuery({
@@ -54,7 +54,7 @@ export default function TeamsPage() {
             ) : error ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
                     <h3 className="text-lg font-semibold">Unable to load teams</h3>
-                    <p className="mt-1 text-sm">Please login first or try again in a moment.</p>
+                    <p className="mt-1 text-sm">Please sign in from the landing page or try again in a moment.</p>
                 </div>
             ) : teams.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">

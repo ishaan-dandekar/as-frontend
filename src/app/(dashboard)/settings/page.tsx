@@ -1,37 +1,101 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUser } from '@/hooks/useUser';
-import { useAuth } from '@/hooks/useAuth';
-import { MapPin, PencilLine, Shield, Sparkles } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
+import { ProfileIntegrations } from '@/components/profile/ProfileIntegrations';
+import { githubApi } from '@/api/github';
+import { leetcodeApi } from '@/api/leetcode';
+import { PencilLine } from 'lucide-react';
 
 export default function SettingsPage() {
     const { profile, isLoading, updateProfile, isUpdating } = useUser();
-    const { logout } = useAuth();
+    const storedOAuthSession = githubApi.getStoredOAuthSession();
+    const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
 
-    const [name, setName] = useState('');
     const [bio, setBio] = useState('');
-    const [location, setLocation] = useState('');
-    const [githubUsername, setGithubUsername] = useState('');
-    const [leetCodeUrl, setLeetCodeUrl] = useState('');
+    const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
+    const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(storedLeetCodeUsername || undefined);
     const [skillsText, setSkillsText] = useState('');
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    const effectiveGithubUsername = githubUsername === null ? undefined : (githubUsername ?? profile?.githubUsername);
+    const effectiveLeetCodeUsername = leetCodeUsername === null ? undefined : (leetCodeUsername ?? profile?.leetCodeUrl);
+
     useEffect(() => {
         if (!profile) return;
-        setName(profile.name || '');
         setBio(profile.bio || '');
-        setLocation(profile.location || '');
-        setGithubUsername(profile.githubUsername || '');
-        setLeetCodeUrl(profile.leetCodeUrl || '');
         setSkillsText((profile.skills || []).join(', '));
     }, [profile]);
+
+    useEffect(() => {
+        if (!profile?.leetCodeUrl) return;
+        const normalized = leetcodeApi.normalizeUsername(profile.leetCodeUrl);
+        if (!normalized) return;
+        setLeetCodeUsername((prev) => prev ?? normalized);
+        leetcodeApi.setStoredUsername(normalized);
+    }, [profile?.leetCodeUrl]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('github_oauth');
+        if (!status) return;
+
+        const sessionId = params.get('session_id') || '';
+        const githubUsernameFromQuery = params.get('github_username') || '';
+        const githubMessage = params.get('github_message') || '';
+
+        if (status === 'success' && sessionId && githubUsernameFromQuery) {
+            const session = {
+                sessionId,
+                githubUsername: githubUsernameFromQuery,
+            };
+
+            githubApi.setStoredOAuthSession(session);
+            setGithubUsername(githubUsernameFromQuery);
+            void updateProfile({ githubUsername: githubUsernameFromQuery });
+
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage(
+                        {
+                            type: 'github_oauth',
+                            status: 'success',
+                            message: 'GitHub connected',
+                            payload: session,
+                        },
+                        window.location.origin,
+                    );
+                }
+            } catch {
+                // Ignore opener messaging failures; localStorage session is already persisted.
+            }
+
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.close();
+                }
+            } catch {
+                // Ignore popup close errors.
+            }
+            return;
+        }
+
+        if (status === 'error') {
+            setError(githubMessage || 'GitHub authorization failed. Please try again.');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [updateProfile]);
 
     const onSave = async () => {
         setMessage(null);
@@ -44,15 +108,11 @@ export default function SettingsPage() {
                 .filter(Boolean);
 
             await updateProfile({
-                name,
                 bio,
-                location,
-                githubUsername,
-                leetCodeUrl,
                 skills,
             });
 
-            setMessage('Profile updated successfully.');
+            setMessage('Settings updated successfully.');
         } catch (err: unknown) {
             const apiError = err as { response?: { data?: { message?: string | Record<string, unknown> } } };
             const message = apiError.response?.data?.message;
@@ -60,13 +120,47 @@ export default function SettingsPage() {
         }
     };
 
+    const handleGithubConnect = useCallback((username: string) => {
+        const next = (username || '').trim();
+        if (!next) return;
+
+        setGithubUsername((prev) => (prev === next ? prev : next));
+        if (effectiveGithubUsername !== next) {
+            void updateProfile({ githubUsername: next });
+        }
+    }, [effectiveGithubUsername, updateProfile]);
+
+    const handleLeetCodeConnect = useCallback((username: string) => {
+        const normalized = leetcodeApi.normalizeUsername(username);
+        setLeetCodeUsername((prev) => (prev === normalized ? prev : normalized));
+        leetcodeApi.setStoredUsername(normalized);
+        if ((effectiveLeetCodeUsername || '') !== (username || '')) {
+            void updateProfile({ leetCodeUrl: username });
+        }
+    }, [effectiveLeetCodeUsername, updateProfile]);
+
+    const handleGithubDisconnect = useCallback(() => {
+        setGithubUsername((prev) => (prev === null ? prev : null));
+        if (effectiveGithubUsername) {
+            void updateProfile({ githubUsername: '' });
+        }
+    }, [effectiveGithubUsername, updateProfile]);
+
+    const handleLeetCodeDisconnect = useCallback(() => {
+        setLeetCodeUsername((prev) => (prev === null ? prev : null));
+        leetcodeApi.clearStoredUsername();
+        if (effectiveLeetCodeUsername) {
+            void updateProfile({ leetCodeUrl: '' });
+        }
+    }, [effectiveLeetCodeUsername, updateProfile]);
+
     return (
         <div className="space-y-6">
             <Breadcrumbs items={[{ label: 'Settings' }]} />
 
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
-                <p className="text-slate-600">Customize your public profile and account preferences.</p>
+                <p className="text-slate-600">Manage editable profile fields and connected coding accounts.</p>
             </div>
 
             {isLoading ? (
@@ -74,8 +168,8 @@ export default function SettingsPage() {
                     <Spinner size="lg" />
                 </div>
             ) : (
-                <div className="grid gap-6 lg:grid-cols-3">
-                    <Card className="lg:col-span-2">
+                <div className="space-y-6">
+                    <Card>
                         <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                             <CardTitle className="flex items-center gap-2 text-xl">
                                 <PencilLine className="h-5 w-5 text-indigo-600" />
@@ -98,18 +192,27 @@ export default function SettingsPage() {
 
                             <Input
                                 label="Full Name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Your full name"
+                                value={profile?.name || ''}
+                                disabled
+                                helperText="Name is synced from your Google account and cannot be edited here."
                             />
 
-                            <Input
-                                label="Location"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                                placeholder="City, Country"
-                                icon={<MapPin className="h-4 w-4" />}
-                            />
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="flex items-center gap-3">
+                                    <Avatar
+                                        src={profile?.avatarUrl}
+                                        fallback={profile?.name?.charAt(0) || 'U'}
+                                        className="h-16 w-16 border border-slate-200"
+                                    />
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-900">Profile Picture</p>
+                                        <p className="text-xs text-slate-600">This avatar is synced from your Google account.</p>
+                                    </div>
+                                </div>
+                                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    Your profile picture matches with Google. To change it here, update your Google profile photo.
+                                </p>
+                            </div>
 
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium text-slate-700">Bio</label>
@@ -120,20 +223,6 @@ export default function SettingsPage() {
                                     placeholder="Tell us about yourself"
                                 />
                             </div>
-
-                            <Input
-                                label="GitHub Username"
-                                value={githubUsername}
-                                onChange={(e) => setGithubUsername(e.target.value)}
-                                placeholder="octocat"
-                            />
-
-                            <Input
-                                label="LeetCode Username"
-                                value={leetCodeUrl}
-                                onChange={(e) => setLeetCodeUrl(e.target.value)}
-                                placeholder="leetcode_user"
-                            />
 
                             <Input
                                 label="Skills"
@@ -148,36 +237,22 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="space-y-6">
-                        <Card>
-                            <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                                <CardTitle className="flex items-center gap-2 text-xl">
-                                    <Shield className="h-5 w-5 text-slate-700" />
-                                    Session
-                                </CardTitle>
-                                <CardDescription>Manage your current login session securely.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Button variant="danger" className="w-full" onClick={logout}>
-                                    Logout
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="border-b border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50/60">
-                                <CardTitle className="flex items-center gap-2 text-xl text-amber-800">
-                                    <Sparkles className="h-5 w-5" />
-                                    Profile Tips
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-2 text-sm text-slate-600">
-                                <p>Add location so teammates can find collaborators in nearby time zones.</p>
-                                <p>Keep your bio short and specific for better profile discovery.</p>
-                                <p>List your strongest skills first (comma-separated).</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <Card>
+                        <CardHeader className="border-b border-slate-100 bg-slate-50/70">
+                            <CardTitle className="text-xl">Coding Integrations</CardTitle>
+                            <CardDescription>Connect GitHub and LeetCode from settings to power your profile stats.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ProfileIntegrations
+                                githubUsername={effectiveGithubUsername}
+                                leetCodeUsername={effectiveLeetCodeUsername}
+                                onGithubConnect={handleGithubConnect}
+                                onLeetCodeConnect={handleLeetCodeConnect}
+                                onGithubDisconnect={handleGithubDisconnect}
+                                onLeetCodeDisconnect={handleLeetCodeDisconnect}
+                            />
+                        </CardContent>
+                    </Card>
                 </div>
             )}
         </div>

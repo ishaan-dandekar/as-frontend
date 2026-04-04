@@ -8,7 +8,6 @@ import { ProjectCard } from '@/components/projects/ProjectCard';
 import { useProjects } from '@/hooks/useProjects';
 import { GitHubStats } from '@/components/profile/GitHubStats';
 import { LeetCodeStats } from '@/components/profile/LeetCodeStats';
-import { ProfileIntegrations } from '@/components/profile/ProfileIntegrations';
 import { Project } from '@/types';
 import { githubApi, GitHubRepo } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
@@ -24,7 +23,7 @@ export default function ProfilePage() {
     const router = useRouter();
     const storedOAuthSession = githubApi.getStoredOAuthSession();
     const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
-    const { profile, isLoading: userLoading, updateProfile } = useUser();
+    const { profile, isLoading: userLoading } = useUser();
     const { projects, isLoading: projectsLoading, refetch } = useProjects();
     
     // State for connected profiles - use null to indicate explicitly disconnected
@@ -73,7 +72,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         if (userLoading || profile) return;
-        router.replace('/login');
+        router.replace('/');
     }, [profile, router, userLoading]);
 
     useEffect(() => {
@@ -265,26 +264,6 @@ export default function ProfilePage() {
                 </aside>
 
                 <section className="space-y-6 lg:col-span-2">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <ProfileIntegrations
-                            githubUsername={effectiveGithubUsername}
-                            leetCodeUsername={effectiveLeetCodeUsername}
-                            onGithubConnect={(username) => setGithubUsername(username)}
-                            onLeetCodeConnect={(username) => {
-                                const normalized = leetcodeApi.normalizeUsername(username);
-                                setLeetCodeUsername(normalized);
-                                leetcodeApi.setStoredUsername(normalized);
-                                void updateProfile({ leetCodeUrl: username });
-                            }}
-                            onGithubDisconnect={() => setGithubUsername(null)}
-                            onLeetCodeDisconnect={() => {
-                                setLeetCodeUsername(null);
-                                leetcodeApi.clearStoredUsername();
-                                void updateProfile({ leetCodeUrl: '' });
-                            }}
-                        />
-                    </div>
-
                     <div id="my-projects" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="font-display text-2xl font-bold text-slate-900">My Projects</h2>

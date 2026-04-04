@@ -44,122 +44,11 @@ function getCurrentUser(): User | null {
     return user;
 }
 
-function setCurrentUser(userId: string) {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(CURRENT_USER_KEY, userId);
-}
-
-function generateUserId(): string {
-    return 'user_' + Math.random().toString(36).substring(2, 15);
-}
-
 // Mocking Interceptor for Demo Purpose
 api.interceptors.request.use(
     async (config) => {
         if (isMockApiEnabled) {
             const url = config.url || '';
-
-            // Handle registration
-            if (url.includes('/auth/register') && config.method === 'post') {
-                const requestData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
-                const { name, email, password } = requestData;
-
-                const users = getStoredUsers();
-
-                // Check if email already exists
-                const existingUser = Object.values(users).find(u => u.email === email);
-                if (existingUser) {
-                    config.adapter = async () => {
-                        throw { response: { status: 400, data: { message: 'Email already registered' } } };
-                    };
-                    return config;
-                }
-
-                // Create new user
-                const newUserId = generateUserId();
-                const newUser: User & { password: string } = {
-                    id: newUserId,
-                    name: name || 'New User',
-                    email: email,
-                    password: password,
-                    role: 'STUDENT',
-                    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
-                    bio: '',
-                    skills: [],
-                    projectsCount: 0,
-                    followersCount: 0,
-                    followingCount: 0,
-                    createdAt: new Date().toISOString(),
-                };
-
-                users[newUserId] = newUser;
-                saveStoredUsers(users);
-                setCurrentUser(newUserId);
-
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { password: _pwd, ...userWithoutPassword } = newUser;
-
-                config.adapter = async () => ({
-                    data: {
-                        data: { user: userWithoutPassword, token: 'mock-token-' + newUserId, refreshToken: 'mock-refresh-' + newUserId },
-                        message: 'Registration successful'
-                    },
-                    status: 200,
-                    statusText: 'OK',
-                    headers: {},
-                    config,
-                });
-                return config;
-            }
-
-            // Handle login
-            if (url.includes('/auth/login') && config.method === 'post') {
-                const requestData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
-                const { email, password } = requestData;
-
-                // Check mock student first
-                if (email === MOCK_STUDENT.email) {
-                    setCurrentUser(MOCK_STUDENT.id);
-                    config.adapter = async () => ({
-                        data: {
-                            data: { user: MOCK_STUDENT, token: 'mock-token', refreshToken: 'mock-refresh' },
-                            message: 'Login successful'
-                        },
-                        status: 200,
-                        statusText: 'OK',
-                        headers: {},
-                        config,
-                    });
-                    return config;
-                }
-
-                // Check stored users
-                const users = getStoredUsers();
-                const user = Object.values(users).find(u => u.email === email && u.password === password);
-
-                if (user) {
-                    setCurrentUser(user.id);
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    const { password: _pwd, ...userWithoutPassword } = user;
-                    config.adapter = async () => ({
-                        data: {
-                            data: { user: userWithoutPassword, token: 'mock-token-' + user.id, refreshToken: 'mock-refresh-' + user.id },
-                            message: 'Login successful'
-                        },
-                        status: 200,
-                        statusText: 'OK',
-                        headers: {},
-                        config,
-                    });
-                    return config;
-                }
-
-                // Invalid credentials
-                config.adapter = async () => {
-                    throw { response: { status: 401, data: { message: 'Invalid email or password' } } };
-                };
-                return config;
-            }
 
             // Handle get profile
             if (url.includes('/user/profile') && config.method === 'get') {
@@ -264,8 +153,7 @@ api.interceptors.response.use(
         const originalRequest = error.config;
         const requestUrl = originalRequest?.url || '';
         const isAuthEndpoint =
-            requestUrl.includes('/auth/login') ||
-            requestUrl.includes('/auth/register') ||
+            requestUrl.includes('/auth/google/start') ||
             requestUrl.includes('/auth/refresh');
 
         // Custom error for no internet or server down - can be used to fail-over to mock

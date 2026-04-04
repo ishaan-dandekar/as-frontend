@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
+import AppShell from "@/components/layout/AppShell";
 import { cn } from "@/lib/utils";
 
 const manrope = Manrope({
@@ -36,7 +37,9 @@ export default function RootLayout({
           spaceGrotesk.variable
         )}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

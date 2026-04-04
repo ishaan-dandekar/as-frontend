@@ -4,7 +4,7 @@ import { User } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Github, MapPin, Link as LinkIcon, Calendar, Settings } from 'lucide-react';
+import { Github, Link as LinkIcon, Calendar, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 interface ProfileHeaderProps {
@@ -14,7 +14,6 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
     const joined = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A';
-    const displayLocation = user.location?.trim() || 'Location not set';
     const bioText = user.bio?.trim() || '';
 
     return (
@@ -74,10 +73,6 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
                         LeetCode
                     </a>
                 )}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700">
-                    <MapPin className="h-4 w-4" />
-                    {displayLocation}
-                </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700">
                     <Calendar className="h-4 w-4" />
                     Joined {joined}

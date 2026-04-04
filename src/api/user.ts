@@ -4,7 +4,6 @@ import { withAvatarSyncVersion } from '@/lib/avatarUrl';
 
 type BackendUser = {
     id: string;
-    location?: string;
     name?: string;
     username?: string;
     email: string;
@@ -21,6 +20,12 @@ type BackendUser = {
     projectsCount?: number;
     created_at?: string;
 };
+
+function toTitleCase(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (char) => char.toUpperCase());
+}
 
 function isEmailLike(value?: string): boolean {
     if (!value) return false;
@@ -40,10 +45,10 @@ function normalizeDisplayName(user: BackendUser): string {
     ].filter(Boolean);
 
     const best = candidates.find((candidate) => !isEmailLike(candidate));
-    if (best) return best;
+    if (best) return toTitleCase(best);
 
     const fallbackFromEmail = (user.email || '').split('@')[0]?.trim();
-    return fallbackFromEmail || 'User';
+    return fallbackFromEmail ? toTitleCase(fallbackFromEmail) : 'User';
 }
 
 function resolveRole(user: BackendUser): 'STUDENT' | 'DEPARTMENT' {
@@ -54,34 +59,8 @@ function resolveRole(user: BackendUser): 'STUDENT' | 'DEPARTMENT' {
     return isLikelyStudent ? 'STUDENT' : 'DEPARTMENT';
 }
 
-function locationStorageKey(userId?: string): string | null {
-    if (!userId) return null;
-    return `profile_location:${userId}`;
-}
-
-function getStoredLocation(userId?: string): string | undefined {
-    if (typeof window === 'undefined') return undefined;
-    const key = locationStorageKey(userId);
-    if (!key) return undefined;
-    const value = localStorage.getItem(key);
-    return value?.trim() || undefined;
-}
-
-function setStoredLocation(userId: string, location: string) {
-    if (typeof window === 'undefined') return;
-    const key = locationStorageKey(userId);
-    if (!key) return;
-    const normalized = location.trim();
-    if (!normalized) {
-        localStorage.removeItem(key);
-        return;
-    }
-    localStorage.setItem(key, normalized);
-}
-
 function mapUser(user: BackendUser): User {
     const normalizedRole = resolveRole(user);
-    const mappedLocation = (user.location || '').trim() || getStoredLocation(user.id);
 
     return {
         id: user.id,
@@ -93,7 +72,6 @@ function mapUser(user: BackendUser): User {
         skills: user.skills || [],
         githubUsername: user.github_username,
         leetCodeUrl: user.leetcode_username,
-        location: mappedLocation,
         followersCount: user.followersCount || 0,
         followingCount: user.followingCount || 0,
         projectsCount: user.projectsCount || 0,
@@ -112,21 +90,13 @@ export const userApi = {
     updateProfile: async (userData: Partial<User>): Promise<APIResponse<User>> => {
         const payload: Record<string, unknown> = {};
 
-        if (typeof userData.name === 'string') payload.first_name = userData.name;
         if (typeof userData.bio === 'string') payload.bio = userData.bio;
-        if (typeof userData.avatarUrl === 'string') payload.profile_picture_url = userData.avatarUrl;
         if (typeof userData.githubUsername === 'string') payload.github_username = userData.githubUsername;
         if (typeof userData.leetCodeUrl === 'string') payload.leetcode_username = userData.leetCodeUrl;
-        if (typeof userData.location === 'string') payload.location = userData.location;
         if (Array.isArray(userData.skills)) payload.skills = userData.skills;
 
         const response = await api.patch('/user/profile', payload);
         const mappedUser = mapUser(response.data?.data || {});
-
-        if (typeof userData.location === 'string' && mappedUser.id) {
-            setStoredLocation(mappedUser.id, userData.location);
-            mappedUser.location = userData.location.trim() || undefined;
-        }
 
         return {
             ...response.data,

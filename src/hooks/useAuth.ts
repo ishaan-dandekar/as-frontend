@@ -36,43 +36,109 @@ export function useAuth() {
 
     const googleLogin = useCallback(async () => {
         setIsLoading(true);
+        let popup: Window | null = null;
         try {
-            const { authorizationUrl } = await authApi.getGoogleOAuthUrl();
-            if (!authorizationUrl) {
-                throw new Error('Missing Google authorization URL');
-            }
+            // Clear stale payloads from previous attempts.
+            localStorage.removeItem('google_oauth_result');
 
-            const popup = window.open(authorizationUrl, 'google_oauth', 'width=500,height=600');
+            const popupWidth = 500;
+            const popupHeight = 650;
+            const dualScreenLeft = window.screenLeft ?? window.screenX ?? 0;
+            const dualScreenTop = window.screenTop ?? window.screenY ?? 0;
+            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || screen.width;
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || screen.height;
+            const popupLeft = Math.max(0, Math.round(dualScreenLeft + (viewportWidth - popupWidth) / 2));
+            const popupTop = Math.max(0, Math.round(dualScreenTop + (viewportHeight - popupHeight) / 2));
+
+            // Open popup immediately in direct response to user click to avoid popup blockers.
+            popup = window.open(
+                '',
+                'google_oauth',
+                `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes,status=no`
+            );
             if (!popup) {
                 throw new Error('Popup was blocked. Please allow popups and try again.');
             }
+
+            const { authorizationUrl } = await authApi.getGoogleOAuthUrl(window.location.origin);
+            if (!authorizationUrl) {
+                throw new Error('Missing Google authorization URL');
+            }
+            popup.location.href = authorizationUrl;
 
             const result = await new Promise<{
                 user: User;
                 token: string;
                 refreshToken: string;
             }>((resolve, reject) => {
-                const timeout = window.setTimeout(() => {
-                    window.removeEventListener('message', onMessage);
+                let settled = false;
+                let popupClosedAt: number | null = null;
+
+                const finish = (
+                    mode: 'resolve' | 'reject',
+                    value: { user: User; token: string; refreshToken: string } | Error
+                ) => {
+                    if (settled) return;
+                    settled = true;
+                    window.clearTimeout(timeout);
                     clearInterval(storageCheck);
-                    reject(new Error('Google sign-in timed out. Please try again.'));
+                    clearInterval(popupClosedCheck);
+                    window.removeEventListener('message', onMessage);
+                    window.removeEventListener('storage', onStorage);
+
+                    if (mode === 'resolve') {
+                        resolve(value as { user: User; token: string; refreshToken: string });
+                    } else {
+                        reject(value);
+                    }
+                };
+
+                const tryResolveFromStorage = () => {
+                    try {
+                        const raw = localStorage.getItem('google_oauth_result');
+                        if (!raw) return false;
+                        const payload = JSON.parse(raw);
+                        const processed = authApi.processGoogleOAuthResult(payload);
+                        localStorage.removeItem('google_oauth_result');
+                        finish('resolve', processed);
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                };
+
+                const timeout = window.setTimeout(() => {
+                    finish('reject', new Error('Google sign-in timed out. Please try again.'));
                 }, 120000);
 
                 // Check localStorage fallback (popup writes to it if postMessage fails)
                 const storageCheck = window.setInterval(() => {
-                    try {
-                        const raw = localStorage.getItem('google_oauth_result');
-                        if (raw) {
-                            localStorage.removeItem('google_oauth_result');
-                            clearInterval(storageCheck);
-                            window.clearTimeout(timeout);
-                            window.removeEventListener('message', onMessage);
-                            const payload = JSON.parse(raw);
-                            const processed = authApi.processGoogleOAuthResult(payload);
-                            resolve(processed);
+                    tryResolveFromStorage();
+                }, 200);
+
+                const onStorage = (event: StorageEvent) => {
+                    if (event.key === 'google_oauth_result') {
+                        tryResolveFromStorage();
+                    }
+                };
+
+                window.addEventListener('storage', onStorage);
+
+                const popupClosedCheck = window.setInterval(() => {
+                    if (!popup || popup.closed) {
+                        if (tryResolveFromStorage()) return;
+
+                        if (popupClosedAt === null) {
+                            popupClosedAt = Date.now();
+                            return;
                         }
-                    } catch { /* ignore */ }
-                }, 500);
+
+                        // Give a short grace period for opener message/localStorage propagation.
+                        if (Date.now() - popupClosedAt >= 5000) {
+                            finish('reject', new Error('Google sign-in cancelled.'));
+                        }
+                    }
+                }, 200);
 
                 const onMessage = (event: MessageEvent) => {
                     const expectedOrigins = new Set<string>([
@@ -95,18 +161,14 @@ export function useAuth() {
 
                     if (data?.type !== 'google_oauth') return;
 
-                    window.clearTimeout(timeout);
-                    clearInterval(storageCheck);
-                    window.removeEventListener('message', onMessage);
-
                     if (data.status !== 'success' || !data.payload) {
-                        reject(new Error(data.message || 'Google sign-in failed'));
+                        finish('reject', new Error(data.message || 'Google sign-in failed'));
                         return;
                     }
 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const processed = authApi.processGoogleOAuthResult(data.payload as any);
-                    resolve(processed);
+                    finish('resolve', processed);
                 };
 
                 window.addEventListener('message', onMessage);
@@ -120,6 +182,9 @@ export function useAuth() {
             queryClient.setQueryData(['profile'], result.user);
             router.push('/dashboard');
         } catch (error) {
+            if (popup && !popup.closed) {
+                popup.close();
+            }
             throw error;
         } finally {
             setIsLoading(false);
@@ -131,7 +196,7 @@ export function useAuth() {
         authApi.logout();
         setUser(null);
         queryClient.removeQueries({ queryKey: ['profile'] });
-        router.push('/login');
+        router.push('/');
     }, [router, queryClient]);
 
     return {

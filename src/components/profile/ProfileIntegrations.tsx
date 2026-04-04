@@ -47,8 +47,18 @@ export function ProfileIntegrations({
     useEffect(() => {
         const syncSessionFromStorage = () => {
             const session = githubApi.getStoredOAuthSession();
-            setOauthSession(session);
-            if (session?.githubUsername) {
+            setOauthSession((prev) => {
+                if (!prev && !session) return prev;
+                if (
+                    prev?.sessionId === session?.sessionId &&
+                    prev?.githubUsername === session?.githubUsername
+                ) {
+                    return prev;
+                }
+                return session;
+            });
+
+            if (session?.githubUsername && session.githubUsername !== githubUsername) {
                 onGithubConnect?.(session.githubUsername);
                 setIsGithubAuthorizing(false);
                 setGithubAuthError(null);
@@ -68,58 +78,130 @@ export function ProfileIntegrations({
         return () => {
             window.removeEventListener('storage', onStorage);
         };
-    }, [onGithubConnect]);
+    }, [githubUsername, onGithubConnect]);
 
     const handleGitHubOAuth = async () => {
+        let popup: Window | null = null;
+        let shouldClosePopup = false;
         try {
             setIsGithubAuthorizing(true);
             setGithubAuthError(null);
-            const start = await githubApi.getOAuthStartUrl();
-            if (!start?.authorizationUrl) {
-                throw new Error('Missing GitHub authorization URL');
-            }
 
-            const popup = window.open(start.authorizationUrl, 'github_oauth', 'width=620,height=740');
+            // Clear stale session payload from previous attempts.
+            localStorage.removeItem('github_oauth_session');
+
+            const popupWidth = 620;
+            const popupHeight = 740;
+            const dualScreenLeft = window.screenLeft ?? window.screenX ?? 0;
+            const dualScreenTop = window.screenTop ?? window.screenY ?? 0;
+            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || screen.width;
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || screen.height;
+            const popupLeft = Math.max(0, Math.round(dualScreenLeft + (viewportWidth - popupWidth) / 2));
+            const popupTop = Math.max(0, Math.round(dualScreenTop + (viewportHeight - popupHeight) / 2));
+
+            popup = window.open(
+                '',
+                'github_oauth',
+                `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes,status=no`
+            );
             if (!popup) {
                 throw new Error('Popup was blocked. Please allow popups and try again.');
             }
 
+            const start = await githubApi.getOAuthStartUrl(window.location.origin);
+            if (!start?.authorizationUrl) {
+                throw new Error('Missing GitHub authorization URL');
+            }
+
             await new Promise<void>((resolve, reject) => {
                 let resolved = false;
-                const timeout = window.setTimeout(() => {
-                    if (!resolved) {
-                        console.log('[GitHub OAuth] ⏱️ Timeout reached, checking fallback strategies...');
-                        resolved = true;
-                        window.removeEventListener('message', onMessage);
-                        // Try reading from localStorage fallback
+                let popupClosedAt: number | null = null;
+
+                const finish = (mode: 'resolve' | 'reject', value?: Error) => {
+                    if (resolved) return;
+                    resolved = true;
+                    window.clearTimeout(timeout);
+                    window.removeEventListener('message', onMessage);
+                    window.removeEventListener('storage', onStorage);
+                    clearInterval(storageCheck);
+                    clearInterval(popupClosedCheck);
+
+                    if (mode === 'resolve' && popup && !popup.closed) {
                         try {
-                            const stored = localStorage.getItem('github_oauth_session');
-                            if (stored) {
-                                console.log('[GitHub OAuth] ✓ Found OAuth data in localStorage fallback');
-                                const session = JSON.parse(stored);
-                                githubApi.setStoredOAuthSession(session);
-                                setOauthSession(session);
-                                onGithubConnect?.(session.githubUsername);
-                                localStorage.removeItem('github_oauth_session');
-                                resolve();
-                                return;
-                            }
-                        } catch (e) {
-                            console.error('[GitHub OAuth] Error reading localStorage fallback:', e);
+                            popup.close();
+                        } catch {
+                            // Ignore popup close errors; auth already succeeded.
                         }
-                        console.error('[GitHub OAuth] ✗ No fallback data found, rejecting promise');
-                        reject(new Error('GitHub authorization timed out. Please try again.'));
                     }
+
+                    if (mode === 'resolve') {
+                        resolve();
+                    } else {
+                        reject(value || new Error('GitHub authorization failed. Please try again.'));
+                    }
+                };
+
+                const tryResolveFromStorage = () => {
+                    try {
+                        const stored = localStorage.getItem('github_oauth_session');
+                        if (!stored) return false;
+
+                        const session = JSON.parse(stored);
+                        if (!session?.sessionId || !session?.githubUsername) return false;
+
+                        githubApi.setStoredOAuthSession(session);
+                        setOauthSession(session);
+                        onGithubConnect?.(session.githubUsername);
+                        localStorage.removeItem('github_oauth_session');
+                        finish('resolve');
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                };
+
+                const timeout = window.setTimeout(() => {
+                    if (tryResolveFromStorage()) return;
+                    finish('reject', new Error('GitHub authorization timed out. Please try again.'));
                 }, 120000);
 
+                const storageCheck = window.setInterval(() => {
+                    tryResolveFromStorage();
+                }, 200);
+
+                const onStorage = (event: StorageEvent) => {
+                    if (event.key === 'github_oauth_session') {
+                        tryResolveFromStorage();
+                    }
+                };
+
+                const popupClosedCheck = window.setInterval(() => {
+                    if (!popup || popup.closed) {
+                        if (tryResolveFromStorage()) {
+                            return;
+                        }
+
+                        if (popupClosedAt === null) {
+                            popupClosedAt = Date.now();
+                            return;
+                        }
+
+                        if (Date.now() - popupClosedAt >= 10000) {
+                            finish('reject', new Error('GitHub authorization window closed. Please try again.'));
+                        }
+                    }
+                }, 200);
+
                 const onMessage = (event: MessageEvent) => {
-                    console.log('[GitHub OAuth] postMessage received from origin:', event.origin);
                     if (resolved) {
-                        console.log('[GitHub OAuth] Already resolved, ignoring duplicate message');
                         return;
                     }
 
-                    const expectedOrigins = new Set<string>([window.location.origin]);
+                    const expectedOrigins = new Set<string>([
+                        window.location.origin,
+                        'http://localhost:8000',
+                        'http://127.0.0.1:8000',
+                    ]);
                     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
                     if (apiUrl) {
                         try {
@@ -130,7 +212,6 @@ export function ProfileIntegrations({
                     }
 
                     if (!expectedOrigins.has(event.origin)) {
-                        console.log('[GitHub OAuth] Message from unexpected origin:', event.origin, 'Expected:', Array.from(expectedOrigins));
                         return;
                     }
 
@@ -145,26 +226,14 @@ export function ProfileIntegrations({
                     };
 
                     if (data?.type !== 'github_oauth') {
-                        console.log('[GitHub OAuth] Received non-github message, type:', data?.type);
                         return;
                     }
-
-                    resolved = true;
-                    window.clearTimeout(timeout);
-                    window.removeEventListener('message', onMessage);
-                    console.log('[GitHub OAuth] ✓ Message successfully received and processed:', data);
 
                     if (data.status !== 'success' || !data.payload?.sessionId || !data.payload?.githubUsername) {
-                        console.error('[GitHub OAuth] ✗ Message validation failed:', {
-                            status: data.status,
-                            hasSessionId: !!data.payload?.sessionId,
-                            hasUsername: !!data.payload?.githubUsername
-                        });
-                        reject(new Error(data.message || 'GitHub authorization failed'));
+                        finish('reject', new Error(data.message || 'GitHub authorization failed'));
                         return;
                     }
 
-                    console.log('[GitHub OAuth] ✓ Storing OAuth session with username:', data.payload.githubUsername);
                     githubApi.setStoredOAuthSession({
                         sessionId: data.payload.sessionId,
                         githubUsername: data.payload.githubUsername,
@@ -174,19 +243,24 @@ export function ProfileIntegrations({
                         githubUsername: data.payload.githubUsername,
                     });
                     onGithubConnect?.(data.payload.githubUsername);
-                    resolve();
+                    finish('resolve');
                 };
 
                 window.addEventListener('message', onMessage);
+                window.addEventListener('storage', onStorage);
+
+                // Navigate only after listeners are registered to avoid missing fast callback messages.
+                popup.location.href = start.authorizationUrl;
             });
         } catch (error) {
+            shouldClosePopup = true;
             const err = error as { response?: { data?: { message?: string }; status?: number }; message?: string };
-            console.error('[GitHub OAuth] Full error:', error);
-            console.error('[GitHub OAuth] Status:', err.response?.status);
-            console.error('[GitHub OAuth] Message:', err.response?.data?.message || err.message);
             const serverMessage = err.response?.data?.message;
             setGithubAuthError(serverMessage || err.message || 'Failed to start GitHub authorization');
         } finally {
+            if (popup && !popup.closed && shouldClosePopup) {
+                popup.close();
+            }
             setIsGithubAuthorizing(false);
         }
     };

@@ -13,7 +13,6 @@ export interface User {
     followersCount: number;
     followingCount: number;
     projectsCount: number;
-    location?: string;
     githubUsername?: string;
     website?: string;
     lastSyncTimestamp?: string;
