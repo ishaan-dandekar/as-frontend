@@ -20,6 +20,19 @@ export function EventCard({ event }: EventCardProps) {
     const [interestCount, setInterestCount] = useState(event.interestedCount);
     const [isLoading, setIsLoading] = useState(false);
 
+    const handleSpotlightMove = (event: React.MouseEvent<HTMLElement>) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        event.currentTarget.style.setProperty('--spotlight-x', `${x}px`);
+        event.currentTarget.style.setProperty('--spotlight-y', `${y}px`);
+    };
+
+    const resetSpotlight = (event: React.MouseEvent<HTMLElement>) => {
+        event.currentTarget.style.setProperty('--spotlight-x', '50%');
+        event.currentTarget.style.setProperty('--spotlight-y', '50%');
+    };
+
     useEffect(() => {
         setIsInterested(event.isInterested);
         setInterestCount(event.interestedCount);
@@ -52,7 +65,11 @@ export function EventCard({ event }: EventCardProps) {
             whileHover={{ y: -5 }}
             transition={{ duration: 0.3 }}
         >
-            <Card className="flex flex-col h-full overflow-hidden transition-shadow hover:shadow-xl border-slate-200/60 bg-white/50 backdrop-blur-sm">
+            <Card
+                className="spotlight-card flex h-full flex-col overflow-hidden border border-white/70 bg-white/60 backdrop-blur-lg shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-xl"
+                onMouseMove={handleSpotlightMove}
+                onMouseLeave={resetSpotlight}
+            >
                 <div className="h-1.5 w-full bg-gradient-to-r from-teal-500 via-cyan-500 to-indigo-500" />
 
                 <CardHeader className="p-5 pb-2">

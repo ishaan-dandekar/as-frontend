@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventApi } from '@/api/event';
 import { Event } from '@/types';
@@ -22,6 +22,34 @@ const containerVariants = {
             staggerChildren: 0.1
         }
     }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0 }
+};
+
+const useCountUp = (value: number, duration = 700) => {
+    const [current, setCurrent] = useState(0);
+
+    useEffect(() => {
+        const start = performance.now();
+        let raf = 0;
+
+        const tick = (time: number) => {
+            const progress = Math.min((time - start) / duration, 1);
+            const nextValue = Math.round(progress * value);
+            setCurrent(nextValue);
+            if (progress < 1) {
+                raf = requestAnimationFrame(tick);
+            }
+        };
+
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [value, duration]);
+
+    return current;
 };
 
 export default function EventsPage() {
@@ -178,6 +206,10 @@ export default function EventsPage() {
         [events]
     );
 
+    const animatedUpcoming = useCountUp(upcomingCount);
+    const animatedHackathon = useCountUp(hackathonCount);
+    const animatedWorkshop = useCountUp(workshopCount);
+
     // Simple filtering logic
     const filteredEvents = events.filter((event) => {
         const eventDate = event.date ? new Date(event.date) : null;
@@ -190,10 +222,31 @@ export default function EventsPage() {
         return matchesSearch && matchesTab;
     });
 
+    const handleSpotlightMove = (event: React.MouseEvent<HTMLElement>) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        event.currentTarget.style.setProperty('--spotlight-x', `${x}px`);
+        event.currentTarget.style.setProperty('--spotlight-y', `${y}px`);
+    };
+
+    const resetSpotlight = (event: React.MouseEvent<HTMLElement>) => {
+        event.currentTarget.style.setProperty('--spotlight-x', '50%');
+        event.currentTarget.style.setProperty('--spotlight-y', '50%');
+    };
+
     return (
-        <div className="space-y-6">
+        <motion.div
+            className="space-y-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
             <Breadcrumbs items={[{ label: 'Events' }]} />
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <motion.div
+                className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+                variants={itemVariants}
+            >
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900">Campus Events</h1>
                     <p className="text-slate-500">Discover hackathons, workshops, and orientation sessions.</p>
@@ -203,25 +256,73 @@ export default function EventsPage() {
                         {showHostForm ? 'Cancel Hosting' : 'Host Event'}
                     </Button>
                 )}
-            </div>
+            </motion.div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50 p-4">
+            <motion.div
+                className="spotlight-card overflow-hidden rounded-2xl border border-white/70 bg-white/70 shadow-soft backdrop-blur-lg"
+                variants={itemVariants}
+                onMouseMove={handleSpotlightMove}
+                onMouseLeave={resetSpotlight}
+            >
+                <div className="grid gap-6 p-5 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Featured Event</p>
+                        <h2 className="mt-2 text-2xl font-bold text-slate-900">Innovation Studio Week</h2>
+                        <p className="mt-2 text-sm text-slate-600">
+                            A focused sprint for project teams to refine demos, practice pitches, and connect with mentors.
+                        </p>
+                        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                            <span className="rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1">Apr 26 - Apr 30</span>
+                            <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1">Innovation Lab</span>
+                        </div>
+                        <Button className="mt-4" variant="outline">
+                            View schedule
+                        </Button>
+                    </div>
+                    <div className="overflow-hidden rounded-xl border border-white/60 bg-white/60">
+                        <img
+                            src="/featured-event.svg"
+                            alt="Featured event illustration"
+                            className="h-full w-full object-cover"
+                        />
+                    </div>
+                </div>
+            </motion.div>
+
+            <motion.div className="grid gap-4 sm:grid-cols-3" variants={itemVariants}>
+                <div
+                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg"
+                    onMouseMove={handleSpotlightMove}
+                    onMouseLeave={resetSpotlight}
+                >
                     <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Upcoming</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{upcomingCount}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">{animatedUpcoming}</p>
                 </div>
-                <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-4">
+                <div
+                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg"
+                    onMouseMove={handleSpotlightMove}
+                    onMouseLeave={resetSpotlight}
+                >
                     <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Hackathons</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{hackathonCount}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">{animatedHackathon}</p>
                 </div>
-                <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+                <div
+                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg"
+                    onMouseMove={handleSpotlightMove}
+                    onMouseLeave={resetSpotlight}
+                >
                     <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Workshops</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{workshopCount}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">{animatedWorkshop}</p>
                 </div>
-            </div>
+            </motion.div>
 
             {profile?.role === 'DEPARTMENT' && showHostForm && (
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+                <motion.div
+                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg space-y-3"
+                    variants={itemVariants}
+                    onMouseMove={handleSpotlightMove}
+                    onMouseLeave={resetSpotlight}
+                >
                     <h3 className="text-lg font-semibold text-slate-900">Host a New Event</h3>
 
                     {hostError && (
@@ -281,7 +382,7 @@ export default function EventsPage() {
                             Publish Event
                         </Button>
                     </div>
-                </div>
+                </motion.div>
             )}
 
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -321,15 +422,18 @@ export default function EventsPage() {
             </div>
 
             {isLoading ? (
-                <div className="flex h-64 items-center justify-center">
+                <motion.div className="flex h-64 items-center justify-center" variants={itemVariants}>
                     <Spinner size="lg" />
-                </div>
+                </motion.div>
             ) : filteredEvents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border border-dashed border-slate-300 bg-white">
+                <motion.div
+                    className="flex flex-col items-center justify-center py-20 text-center rounded-xl border border-dashed border-slate-300 bg-white"
+                    variants={itemVariants}
+                >
                     <CalendarIcon className="mb-4 h-12 w-12 text-slate-300" />
                     <h3 className="text-lg font-semibold text-slate-900">No events found</h3>
                     <p className="text-slate-500">Try adjusting your search or filters.</p>
-                </div>
+                </motion.div>
             ) : (
                 <motion.div
                     variants={containerVariants}
@@ -338,10 +442,12 @@ export default function EventsPage() {
                     className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
                 >
                     {filteredEvents.map((event) => (
-                        <EventCard key={event.id} event={event} />
+                        <motion.div key={event.id} variants={itemVariants}>
+                            <EventCard event={event} />
+                        </motion.div>
                     ))}
                 </motion.div>
             )}
-        </div>
+        </motion.div>
     );
 }

@@ -1,0 +1,24 @@
+<svg width="820" height="420" viewBox="0 0 820 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="820" height="420" rx="24" fill="#EAF3F0"/>
+  <rect x="28" y="28" width="764" height="364" rx="20" fill="#F8FBF9" stroke="#D7E6E1"/>
+  <g opacity="0.28" stroke="#1F6F64" stroke-width="1.6">
+    <path d="M90 120h160"/>
+    <path d="M170 80v160"/>
+    <circle cx="170" cy="120" r="26"/>
+    <path d="M560 140h160"/>
+    <path d="M640 100v160"/>
+    <circle cx="640" cy="140" r="22"/>
+  </g>
+  <g opacity="0.2" fill="#F59E0B">
+    <circle cx="140" cy="300" r="28"/>
+    <circle cx="640" cy="300" r="20"/>
+  </g>
+  <g opacity="0.25" fill="#1C2A33" font-family="monospace" font-size="16">
+    <text x="110" y="210">E = mc^2</text>
+    <text x="520" y="230">a^2 + b^2 = c^2</text>
+    <text x="120" y="260">sin^2 x + cos^2 x = 1</text>
+  </g>
+  <g opacity="0.18" stroke="#1C2A33" stroke-width="1.4">
+    <path d="M250 320c60-45 140-45 200 0"/>
+  </g>
+</svg>

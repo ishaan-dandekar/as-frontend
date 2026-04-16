@@ -29,11 +29,35 @@ export default function AppShell({ children }: { children: ReactNode }) {
     }, [pathname]);
 
     const showNavbar = !hideNavbarRoutes.has(pathname) && !(isProtectedRoute && !hasToken);
+    const showEducationalBackdrop = !hideNavbarRoutes.has(pathname);
 
     return (
         <>
             {showNavbar && <Navbar />}
-            <div className={showNavbar ? 'pt-16' : ''}>{children}</div>
+            <div className={`${showNavbar ? 'pt-16 ' : ''}relative`}
+            >
+                {showEducationalBackdrop && (
+                    <div className="pointer-events-none absolute inset-0 -z-10">
+                        <div className="absolute inset-0 bg-ambient opacity-70" />
+                        <div className="absolute inset-0 bg-grid opacity-30" />
+                        <div className="absolute inset-0 bg-edu opacity-18 bg-parallax" />
+                        <div className="absolute inset-0 bg-edu-2 opacity-12 bg-parallax" />
+                        <div className="absolute left-[6%] top-[14%] rotate-[-6deg] rounded-full border border-emerald-200/40 bg-white/55 px-3 py-1.5 text-[9px] font-semibold text-emerald-700/75 shadow-soft animate-float-slower">
+                            a^2 + b^2 = c^2
+                        </div>
+                        <div className="absolute right-[10%] top-[18%] rotate-[5deg] rounded-full border border-slate-200/50 bg-white/55 px-3 py-1.5 text-[9px] font-semibold text-slate-700/75 shadow-soft animate-float-slower">
+                            E = mc^2
+                        </div>
+                        <div className="absolute left-[12%] bottom-[16%] rotate-[-4deg] rounded-full border border-amber-200/50 bg-white/55 px-3 py-1.5 text-[9px] font-semibold text-amber-700/75 shadow-soft animate-float-slower">
+                            integral_0^1 x^2 dx = 1/3
+                        </div>
+                        <div className="absolute right-[14%] bottom-[14%] rotate-[4deg] rounded-full border border-emerald-200/40 bg-white/55 px-3 py-1.5 text-[9px] font-semibold text-emerald-700/75 shadow-soft animate-float-slower">
+                            {'sum_{i=1}^n i = n(n+1)/2'}
+                        </div>
+                    </div>
+                )}
+                {children}
+            </div>
         </>
     );
 }

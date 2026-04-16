@@ -1,0 +1,38 @@
+<svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="720" fill="#F6F4F0"/>
+  <g opacity="0.18" stroke="#1F6F64" stroke-width="1.4">
+    <path d="M60 90h120"/>
+    <path d="M90 60v120"/>
+    <circle cx="120" cy="120" r="24"/>
+    <path d="M520 120h140"/>
+    <path d="M590 80v120"/>
+    <circle cx="590" cy="120" r="22"/>
+  </g>
+  <g opacity="0.16" stroke="#394553" stroke-width="1.2">
+    <path d="M120 300h180"/>
+    <path d="M120 330h120"/>
+    <rect x="90" y="270" width="230" height="90" rx="14"/>
+    <path d="M520 310h130"/>
+    <path d="M520 340h90"/>
+    <rect x="500" y="280" width="170" height="90" rx="14"/>
+  </g>
+  <g opacity="0.15" fill="#F59E0B">
+    <circle cx="160" cy="520" r="32"/>
+    <circle cx="520" cy="520" r="24"/>
+    <circle cx="610" cy="600" r="18"/>
+  </g>
+  <g opacity="0.2" fill="#1F6F64">
+    <path d="M300 520l40-70 40 70H300z"/>
+    <path d="M430 160l35-60 35 60h-70z"/>
+  </g>
+  <g opacity="0.16" stroke="#1C2A33" stroke-width="1.2">
+    <path d="M70 620c60-40 120-40 180 0"/>
+    <path d="M470 620c60-40 120-40 180 0"/>
+  </g>
+  <g opacity="0.18" fill="#1C2A33" font-family="monospace" font-size="14">
+    <text x="70" y="210">E = mc^2</text>
+    <text x="430" y="220">a^2 + b^2 = c^2</text>
+    <text x="80" y="460">F = ma</text>
+    <text x="420" y="450">sin^2 x + cos^2 x = 1</text>
+  </g>
+</svg>

@@ -1,0 +1,27 @@
+<svg width="640" height="640" viewBox="0 0 640 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="640" fill="#F6F4F0"/>
+  <g opacity="0.18" stroke="#1F6F64" stroke-width="1.2">
+    <path d="M80 120h160"/>
+    <path d="M160 80v160"/>
+    <circle cx="160" cy="160" r="24"/>
+  </g>
+  <g opacity="0.16" stroke="#394553" stroke-width="1.2">
+    <path d="M360 120h180"/>
+    <path d="M360 150h120"/>
+    <rect x="340" y="90" width="220" height="90" rx="16"/>
+  </g>
+  <g opacity="0.14" fill="#1F6F64">
+    <path d="M120 420h140l-70 60-70-60z"/>
+    <path d="M420 460h120l-60 50-60-50z"/>
+  </g>
+  <g opacity="0.18" fill="#F59E0B">
+    <circle cx="120" cy="520" r="22"/>
+    <circle cx="520" cy="520" r="18"/>
+  </g>
+  <g opacity="0.18" fill="#1C2A33" font-family="monospace" font-size="14">
+    <text x="80" y="260">v = u + at</text>
+    <text x="360" y="260">PV = nRT</text>
+    <text x="90" y="560">log_a x</text>
+    <text x="420" y="560">H2O</text>
+  </g>
+</svg>
