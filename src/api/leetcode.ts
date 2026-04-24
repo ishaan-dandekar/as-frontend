@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { normalizeLeetCodeUsername as normalizeLeetCodeUsernameFromUtils } from '@/lib/validation';
 
 export interface LeetCodeStats {
     username: string;
@@ -34,17 +35,7 @@ const LEETCODE_CACHE_PREFIX = 'leetcode_stats_cache:v2:';
 const LEETCODE_USERNAME_STORAGE_KEY = 'leetcode_connected_username:v1';
 
 function normalizeLeetCodeUsername(input: string): string {
-    const raw = (input || '').trim();
-    if (!raw) return '';
-
-    // Allow users to paste full profile URLs like https://leetcode.com/u/username/
-    const cleaned = raw
-        .replace(/^https?:\/\/(www\.)?leetcode\.com\//i, '')
-        .replace(/^u\//i, '')
-        .replace(/^@/, '')
-        .replace(/\/$/, '');
-
-    return cleaned.split('/')[0].trim();
+    return normalizeLeetCodeUsernameFromUtils(input);
 }
 
 function loadCachedStats(username: string): LeetCodeFullStats | null {

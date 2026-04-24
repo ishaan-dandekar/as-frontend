@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { TeamMember } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +11,8 @@ interface TeamMemberCardProps {
 }
 
 export function TeamMemberCard({ member }: TeamMemberCardProps) {
+    const profileIdentifier = member.moodleId || member.userId;
+
     return (
         <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-all">
             <div className="flex items-center gap-4">
@@ -39,12 +42,13 @@ export function TeamMemberCard({ member }: TeamMemberCardProps) {
                 >
                     <Mail className="h-4 w-4" />
                 </a>
-                <button
+                <Link
+                    href={`/discover/${profileIdentifier}`}
                     className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                     title="View Profile"
                 >
                     <ExternalLink className="h-4 w-4" />
-                </button>
+                </Link>
             </div>
         </div>
     );

@@ -16,3 +16,16 @@ export const isValidUrl = (url: string): boolean => {
 export const getCharacterCount = (text: string, max: number): string => {
     return `${text.length}/${max}`;
 };
+
+export const normalizeLeetCodeUsername = (input: string): string => {
+    const raw = (input || '').trim();
+    if (!raw) return '';
+
+    const cleaned = raw
+        .replace(/^https?:\/\/(www\.)?leetcode\.com\//i, '')
+        .replace(/^u\//i, '')
+        .replace(/^@/, '')
+        .replace(/\/$/, '');
+
+    return cleaned.split('/')[0].trim();
+};

@@ -2,8 +2,19 @@ import axios from 'axios';
 import { MOCK_PROJECTS, MOCK_EVENTS, MOCK_STUDENT } from './mockData';
 import { User } from '@/types';
 
+function resolveApiBaseUrl() {
+    const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (configured) return configured;
+
+    if (typeof window !== 'undefined') {
+        return `${window.location.protocol}//${window.location.hostname}:8000/api`;
+    }
+
+    return 'http://localhost:8000/api';
+}
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+    baseURL: resolveApiBaseUrl(),
     headers: {
         'Content-Type': 'application/json',
     },
@@ -172,7 +183,9 @@ api.interceptors.response.use(
                 if (!refreshToken) {
                     return Promise.reject(error);
                 }
-                const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+                const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
+                const refreshUrl = `${baseUrl}/auth/refresh`;
+                const response = await axios.post(refreshUrl, {
                     refresh_token: refreshToken,
                 });
 

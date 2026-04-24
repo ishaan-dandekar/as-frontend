@@ -4,6 +4,8 @@ import { withAvatarSyncVersion } from '@/lib/avatarUrl';
 
 type BackendUser = {
     id: string;
+    moodle_id?: string;
+    unique_id?: string;
     name?: string;
     username?: string;
     email: string;
@@ -61,9 +63,11 @@ function resolveRole(user: BackendUser): 'STUDENT' | 'DEPARTMENT' {
 
 function mapUser(user: BackendUser): User {
     const normalizedRole = resolveRole(user);
+    const moodleId = (user.moodle_id || user.unique_id || user.username || '').trim() || undefined;
 
     return {
         id: user.id,
+        moodleId,
         name: normalizeDisplayName(user),
         email: user.email,
         role: normalizedRole,

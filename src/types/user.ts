@@ -2,6 +2,7 @@ export type UserRole = 'STUDENT' | 'DEPARTMENT';
 
 export interface User {
     id: string;
+    moodleId?: string;
     name: string;
     email: string;
     role: UserRole;

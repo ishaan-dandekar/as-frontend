@@ -8,6 +8,7 @@ import { Project } from '@/types';
 import { Spinner } from '@/components/ui/Spinner';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useUser } from '@/hooks/useUser';
+import { formatGithubUsername } from '../../../lib/profileDisplay';
 
 function normalizeGithubRepoUrl(url?: string): string {
     return (url || '').trim().replace(/\/+$/, '').toLowerCase();
@@ -171,7 +172,7 @@ export default function MyProjectsPage() {
                 <div className="mb-4 flex items-center justify-between">
                     <h2 className="text-2xl font-semibold text-slate-900">GitHub Repositories</h2>
                     <span className="text-sm text-slate-500">
-                        {effectiveGithubUsername ? `@${effectiveGithubUsername}` : 'GitHub not connected'}
+                        {effectiveGithubUsername ? formatGithubUsername(effectiveGithubUsername) : 'GitHub not connected'}
                     </span>
                 </div>
 

@@ -13,8 +13,10 @@ import { projectApi } from '@/api/project';
 import { userApi } from '@/api/user';
 import { useUser } from '@/hooks/useUser';
 import { formatRelativeTime } from '@/lib/utils';
+import { formatGithubUsername } from '@/lib/profileDisplay';
 import { Project, User } from '@/types';
 import { Code2, FolderGit2, Github, Pin, Users } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 
 const PINNED_PROJECT_LIMIT = 3;
 
@@ -24,19 +26,6 @@ const statusWeight: Record<Project['status'], number> = {
     IN_PROGRESS: 2,
     COMPLETED: 1,
 };
-
-function normalizeLeetCodeUsername(rawValue?: string): string {
-    const raw = (rawValue || '').trim();
-    if (!raw) return '';
-
-    const cleaned = raw
-        .replace(/^https?:\/\/(www\.)?leetcode\.com\//i, '')
-        .replace(/^u\//i, '')
-        .replace(/^@/, '')
-        .replace(/\/$/, '');
-
-    return cleaned.split('/')[0].trim();
-}
 
 export default function DiscoverUserDetailPage() {
     const params = useParams();
@@ -51,15 +40,15 @@ export default function DiscoverUserDetailPage() {
     const [githubPinnedReposLoading, setGithubPinnedReposLoading] = useState(false);
 
     const userIdParam = params?.id;
-    const userId = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
+    const userIdentifier = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
     const isCurrentUser = Boolean(currentProfile?.id && profile?.id && currentProfile.id === profile.id);
     const effectiveGithubUsername = (profile?.githubUsername || '').trim();
-    const effectiveLeetCodeUsername = normalizeLeetCodeUsername(
+    const effectiveLeetCodeUsername = leetcodeApi.normalizeUsername(
         profile?.leetCodeUrl || (isCurrentUser ? storedLeetCodeUsername || '' : '')
     );
 
     useEffect(() => {
-        if (!userId) {
+        if (!userIdentifier) {
             setError('Invalid profile link.');
             setIsLoading(false);
             return;
@@ -71,11 +60,13 @@ export default function DiscoverUserDetailPage() {
 
         const load = async () => {
             try {
-                const isSelf = Boolean(currentProfile?.id && currentProfile.id === userId);
+                const currentMoodleId = (currentProfile?.moodleId || '').trim();
+                const isSelfByMoodleId = Boolean(currentMoodleId && currentMoodleId === userIdentifier);
+                const isSelf = Boolean(currentProfile?.id && currentProfile.id === userIdentifier) || isSelfByMoodleId;
                 const profilePromise =
                     isSelf
                         ? Promise.resolve({ data: currentProfile })
-                        : userApi.getUserById(userId);
+                        : userApi.getUserById(userIdentifier);
 
                 const profileResponse = await profilePromise;
 
@@ -135,7 +126,7 @@ export default function DiscoverUserDetailPage() {
         return () => {
             cancelled = true;
         };
-    }, [currentProfile, userId]);
+    }, [currentProfile, userIdentifier]);
 
     useEffect(() => {
         const githubUsername = (profile?.githubUsername || '').trim();
@@ -278,9 +269,11 @@ export default function DiscoverUserDetailPage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-lg font-bold text-teal-700">
-                            {(profile.name || 'U').charAt(0).toUpperCase()}
-                        </div>
+                        <Avatar
+                            src={profile.avatarUrl}
+                            fallback={(profile.name || 'U').charAt(0).toUpperCase()}
+                            className="h-14 w-14 border border-teal-200 bg-teal-100 text-lg font-bold text-teal-700"
+                        />
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">{profile.name}</h1>
@@ -311,7 +304,7 @@ export default function DiscoverUserDetailPage() {
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">GitHub</p>
                             <p className="mt-1 text-xl font-bold text-slate-900">
-                                {effectiveGithubUsername ? `@${effectiveGithubUsername}` : 'Not linked'}
+                                {formatGithubUsername(effectiveGithubUsername)}
                             </p>
                             <p className="text-xs text-slate-500">Username</p>
                         </div>

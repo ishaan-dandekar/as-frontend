@@ -32,6 +32,8 @@ export default function ProjectDetailPage() {
     const queryClient = useQueryClient();
     const id = params.id as string;
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
+    const [isJoiningProject, setIsJoiningProject] = useState(false);
+    const [joinFeedback, setJoinFeedback] = useState<string | null>(null);
 
     const { data: projectRes, isLoading: isProjectLoading } = useQuery({
         queryKey: ['project', id],
@@ -41,6 +43,7 @@ export default function ProjectDetailPage() {
     const { data: teamRes } = useQuery({
         queryKey: ['team', id],
         queryFn: () => teamApi.getTeamByProjectId(id),
+        enabled: Boolean(projectRes?.data?.teamId),
     });
 
     const project = projectRes?.data;
@@ -58,6 +61,8 @@ export default function ProjectDetailPage() {
             projectApi.respondToJoinRequest(requestId, action),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['project-join-requests', id] });
+            queryClient.invalidateQueries({ queryKey: ['team', id] });
+            queryClient.invalidateQueries({ queryKey: ['project', id] });
         },
         onSettled: () => {
             setRespondingRequestId(null);
@@ -73,6 +78,21 @@ export default function ProjectDetailPage() {
         if (respondingRequestId) return;
         setRespondingRequestId(requestId);
         respondJoinRequestMutation.mutate({ requestId, action });
+    };
+
+    const handleJoinProject = async () => {
+        if (isJoiningProject) return;
+        setJoinFeedback(null);
+        setIsJoiningProject(true);
+        try {
+            const response = await projectApi.requestToJoinProject(id);
+            setJoinFeedback(response.message || 'Join request sent successfully.');
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { message?: string } } };
+            setJoinFeedback(apiError.response?.data?.message || 'Failed to send join request.');
+        } finally {
+            setIsJoiningProject(false);
+        }
     };
 
     if (isProjectLoading) {
@@ -144,7 +164,7 @@ export default function ProjectDetailPage() {
                                 value="team"
                                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-600 bg-transparent shadow-none px-0 py-2"
                             >
-                                People ({team?.members.length || 0})
+                                People ({team?.members.length || project.teamMemberCount || 0})
                             </TabsTrigger>
                             <TabsTrigger
                                 value="showcase"
@@ -251,12 +271,15 @@ export default function ProjectDetailPage() {
                             <div className="pt-6 border-t border-slate-100 space-y-4">
                                 <div className="flex items-center justify-between text-sm mb-4">
                                     <span className="text-slate-500">Team Capacity</span>
-                                    <span className="font-bold">{team?.members.length || 0} / {team?.capacity || 4}</span>
+                                    <span className="font-bold">{team?.members.length || project.teamMemberCount || 0} / {team?.capacity || project.teamCapacity || 4}</span>
                                 </div>
-                                <Button className="w-full gap-2" variant="primary">
+                                <Button className="w-full gap-2" variant="primary" onClick={handleJoinProject} disabled={isJoiningProject}>
                                     Join Project
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
+                                {joinFeedback ? (
+                                    <p className="text-xs text-slate-600">{joinFeedback}</p>
+                                ) : null}
                                 <Button className="w-full gap-2" variant="outline">
                                     <MessageSquare className="h-4 w-4" />
                                     Ask a Question

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Github, Link as LinkIcon, Calendar, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { formatUserRole } from '@/lib/profileDisplay';
 
 interface ProfileHeaderProps {
     user: User;
@@ -30,7 +31,7 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
                         <div className="flex flex-wrap items-center gap-2">
                             <h1 className="font-display text-2xl font-bold text-slate-900 sm:text-3xl">{user.name}</h1>
                             <Badge variant="secondary" className="bg-teal-100 text-teal-800">
-                                {user.role}
+                                {formatUserRole(user.role)}
                             </Badge>
                         </div>
                         <p className="text-sm text-slate-600">{user.email}</p>

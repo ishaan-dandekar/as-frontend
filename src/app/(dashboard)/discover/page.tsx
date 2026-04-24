@@ -12,6 +12,7 @@ import { userApi } from '@/api/user';
 import { useUser } from '@/hooks/useUser';
 import { User } from '@/types';
 import { Search, Users } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 
 type DiscoverProfile = {
     user: User;
@@ -35,19 +36,6 @@ type BriefLeetCodeStats = {
     solved: number;
     ranking: number;
 };
-
-function normalizeLeetCodeUsername(rawValue?: string): string {
-    const raw = (rawValue || '').trim();
-    if (!raw) return '';
-
-    const cleaned = raw
-        .replace(/^https?:\/\/(www\.)?leetcode\.com\//i, '')
-        .replace(/^u\//i, '')
-        .replace(/^@/, '')
-        .replace(/\/$/, '');
-
-    return cleaned.split('/')[0].trim();
-}
 
 function isStudentProfile(user: User): boolean {
     if (user.role === 'DEPARTMENT') return false;
@@ -207,7 +195,7 @@ export default function DiscoverPage() {
 
         return sortedProfiles.filter((item) => {
             const githubUsername = (item.user.githubUsername || '').toLowerCase();
-            const leetCodeUsername = normalizeLeetCodeUsername(item.user.leetCodeUrl).toLowerCase();
+            const leetCodeUsername = leetcodeApi.normalizeUsername(item.user.leetCodeUrl || '').toLowerCase();
             const haystack = [
                 item.user.name,
                 item.user.email,
@@ -267,7 +255,7 @@ export default function DiscoverPage() {
 
     useEffect(() => {
         const leetCodeUsernames = filteredProfiles
-            .map((item) => normalizeLeetCodeUsername(item.user.leetCodeUrl).toLowerCase())
+            .map((item) => leetcodeApi.normalizeUsername(item.user.leetCodeUrl || '').toLowerCase())
             .filter(Boolean)
             .filter((username, index, arr) => arr.indexOf(username) === index)
             .filter((username) => leetCodeStatsMap[username] === undefined)
@@ -343,7 +331,7 @@ export default function DiscoverPage() {
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredProfiles.map((item) => {
                         const githubUsername = (item.user.githubUsername || '').trim();
-                        const leetCodeUsername = normalizeLeetCodeUsername(item.user.leetCodeUrl);
+                        const leetCodeUsername = leetcodeApi.normalizeUsername(item.user.leetCodeUrl || '');
                         const isCurrentUser = item.user.id === currentUserId;
                         const githubStats = githubUsername ? githubStatsMap[githubUsername.toLowerCase()] : undefined;
                         const leetCodeStats = leetCodeUsername ? leetCodeStatsMap[leetCodeUsername.toLowerCase()] : undefined;
@@ -351,14 +339,16 @@ export default function DiscoverPage() {
                         return (
                             <Link
                                 key={item.user.id}
-                                href={`/discover/${item.user.id}`}
+                                href={`/discover/${item.user.moodleId || item.user.id}`}
                                 className="block rounded-2xl transition-transform duration-200 hover:-translate-y-0.5"
                             >
                             <article className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-slate-300">
                                 <div className="mb-4 flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-100 text-sm font-bold text-teal-700">
-                                        {(item.user.name || 'U').charAt(0).toUpperCase()}
-                                    </div>
+                                    <Avatar
+                                        src={item.user.avatarUrl}
+                                        fallback={(item.user.name || 'U').charAt(0).toUpperCase()}
+                                        className="h-11 w-11 border border-teal-200 bg-teal-100 text-sm font-bold text-teal-700"
+                                    />
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">
                                             <p className="truncate text-base font-semibold text-slate-900">{item.user.name}</p>

@@ -27,12 +27,16 @@ export default function Providers({ children }: { children: ReactNode }) {
         setAvatarSyncVersionNow();
     }, []);
 
+    const enableQueryDevtools =
+        process.env.NODE_ENV === 'development' &&
+        process.env.NEXT_PUBLIC_ENABLE_RQ_DEVTOOLS === 'true';
+
     return (
         <QueryClientProvider client={queryClient}>
             <ToastProvider>
                 {children}
             </ToastProvider>
-            <ReactQueryDevtools initialIsOpen={false} />
+            {enableQueryDevtools ? <ReactQueryDevtools initialIsOpen={false} /> : null}
         </QueryClientProvider>
     );
 }

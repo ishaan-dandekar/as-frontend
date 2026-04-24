@@ -2,6 +2,7 @@ import { User } from './user';
 
 export interface TeamMember {
     userId: string;
+    moodleId?: string;
     name: string;
     avatarUrl?: string;
     role: string;

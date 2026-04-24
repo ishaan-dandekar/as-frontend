@@ -141,13 +141,13 @@ export function useAuth() {
                 }, 200);
 
                 const onMessage = (event: MessageEvent) => {
-                    const expectedOrigins = new Set<string>([
-                        window.location.origin,
-                        'http://localhost:8000',   // backend origin (popup posts from here)
-                    ]);
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-                    if (apiUrl) {
-                        try { expectedOrigins.add(new URL(apiUrl).origin); } catch { /* */ }
+                    const expectedOrigins = new Set<string>([window.location.origin]);
+                    const apiBase = process.env.NEXT_PUBLIC_API_URL?.trim()
+                        || `${window.location.protocol}//${window.location.hostname}:8000/api`;
+                    try {
+                        expectedOrigins.add(new URL(apiBase).origin);
+                    } catch {
+                        // Ignore malformed API URL and keep same-origin validation.
                     }
 
                     if (!expectedOrigins.has(event.origin)) return;

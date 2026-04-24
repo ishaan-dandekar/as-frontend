@@ -11,6 +11,7 @@ import { projectApi, ProjectJoinRequestItem } from '@/api/project';
 import { teamApi } from '@/api/team';
 import { githubApi, GitHubRepo } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
+import { formatGithubUsername } from '@/lib/profileDisplay';
 import { useEffect, useMemo, useState } from 'react';
 
 const containerVariants = {
@@ -349,7 +350,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">GitHub</p>
-                        <p className="mt-1 text-sm text-slate-700">{profile?.githubUsername ? `@${profile.githubUsername}` : 'Not linked'}</p>
+                        <p className="mt-1 text-sm text-slate-700">{formatGithubUsername(profile?.githubUsername)}</p>
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">LeetCode</p>

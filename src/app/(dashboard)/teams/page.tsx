@@ -1,20 +1,33 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { Users, ArrowRight } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Users, Plus } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { JoinRequestCard } from '@/components/team/JoinRequestCard';
 import { teamApi } from '@/api/team';
 import { Team } from '@/types';
 import { useUser } from '@/hooks/useUser';
 
 export default function TeamsPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { profile, isLoading: profileLoading } = useUser();
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [teamName, setTeamName] = useState('');
+    const [teamDescription, setTeamDescription] = useState('');
+    const [teamCapacity, setTeamCapacity] = useState('5');
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+    const [joinFeedback, setJoinFeedback] = useState<string | null>(null);
+    const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+    const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
 
     useEffect(() => {
         if (profileLoading || profile) return;
@@ -28,7 +41,100 @@ export default function TeamsPage() {
         enabled: !!profile,
     });
 
+    const { data: discoverRes, isLoading: discoverLoading } = useQuery({
+        queryKey: ['discover-teams'],
+        queryFn: () => teamApi.discoverTeams(),
+        retry: false,
+        enabled: !!profile,
+    });
+
+    const { data: incomingRequestsRes, isLoading: incomingRequestsLoading } = useQuery({
+        queryKey: ['team-incoming-requests'],
+        queryFn: () => teamApi.getIncomingJoinRequests(),
+        retry: false,
+        enabled: !!profile,
+    });
+
+    const createTeamMutation = useMutation({
+        mutationFn: (payload: { name: string; description?: string; capacity?: number }) => teamApi.createTeam(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-teams'] });
+            queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
+            setTeamName('');
+            setTeamDescription('');
+            setTeamCapacity('5');
+            setCreateError(null);
+            setCreateSuccess('Team created successfully.');
+            setShowCreateForm(false);
+        },
+        onError: (error: unknown) => {
+            const apiError = error as { response?: { data?: { message?: string } } };
+            setCreateSuccess(null);
+            setCreateError(apiError.response?.data?.message || 'Failed to create team.');
+        },
+    });
+
     const teams = (teamsRes?.data || []) as Team[];
+    const discoverTeams = (discoverRes?.data || []) as Team[];
+    const incomingRequests = incomingRequestsRes?.data?.items || [];
+
+    const respondRequestMutation = useMutation({
+        mutationFn: ({ requestId, action }: { requestId: string; action: 'APPROVE' | 'REJECT' }) =>
+            teamApi.respondToTeamJoinRequest(requestId, action),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['team-incoming-requests'] });
+            queryClient.invalidateQueries({ queryKey: ['my-teams'] });
+            queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
+        },
+        onSettled: () => {
+            setRespondingRequestId(null);
+        },
+    });
+
+    const handleCreateTeam = () => {
+        const normalizedName = teamName.trim();
+        const capacityNumber = Number(teamCapacity);
+
+        if (!normalizedName) {
+            setCreateError('Team name is required.');
+            return;
+        }
+
+        if (!Number.isFinite(capacityNumber) || capacityNumber < 2 || capacityNumber > 20) {
+            setCreateError('Capacity must be between 2 and 20.');
+            return;
+        }
+
+        setCreateError(null);
+        setCreateSuccess(null);
+        createTeamMutation.mutate({
+            name: normalizedName,
+            description: teamDescription.trim(),
+            capacity: capacityNumber,
+        });
+    };
+
+    const handleJoinTeam = async (teamId: string) => {
+        if (joiningTeamId) return;
+        setJoiningTeamId(teamId);
+        setJoinFeedback(null);
+        try {
+            const response = await teamApi.requestToJoinTeam(teamId);
+            setJoinFeedback(response.message || 'Join request sent successfully.');
+            queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { message?: string } } };
+            setJoinFeedback(apiError.response?.data?.message || 'Failed to send join request.');
+        } finally {
+            setJoiningTeamId(null);
+        }
+    };
+
+    const handleRespondJoinRequest = (requestId: string, action: 'APPROVE' | 'REJECT') => {
+        if (respondingRequestId) return;
+        setRespondingRequestId(requestId);
+        respondRequestMutation.mutate({ requestId, action });
+    };
 
     if (profileLoading || (!profile && typeof window !== 'undefined')) {
         return (
@@ -42,12 +148,57 @@ export default function TeamsPage() {
         <div className="space-y-6">
             <Breadcrumbs items={[{ label: 'My Teams' }]} />
 
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">My Teams</h1>
-                <p className="text-slate-600">View and manage teams you are part of.</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">My Teams</h1>
+                    <p className="text-slate-600">View, create, and join teams.</p>
+                </div>
+                <Button className="gap-2" onClick={() => setShowCreateForm((prev) => !prev)}>
+                    <Plus className="h-4 w-4" />
+                    {showCreateForm ? 'Cancel' : 'Create Team'}
+                </Button>
             </div>
 
-            {isLoading ? (
+            {showCreateForm ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Create a New Team</h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Input
+                            label="Team Name"
+                            value={teamName}
+                            onChange={(e) => setTeamName(e.target.value)}
+                            placeholder="Enter team name"
+                        />
+                        <Input
+                            label="Capacity"
+                            type="number"
+                            min={2}
+                            max={20}
+                            value={teamCapacity}
+                            onChange={(e) => setTeamCapacity(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <p className="mb-1.5 text-sm font-medium text-slate-700">Description</p>
+                        <Textarea
+                            value={teamDescription}
+                            onChange={(e) => setTeamDescription(e.target.value)}
+                            placeholder="What is this team focused on?"
+                            maxLength={300}
+                            showCount
+                        />
+                    </div>
+                    {createError ? <p className="text-sm text-red-600">{createError}</p> : null}
+                    {createSuccess ? <p className="text-sm text-emerald-700">{createSuccess}</p> : null}
+                    <Button onClick={handleCreateTeam} isLoading={createTeamMutation.isPending}>
+                        Save Team
+                    </Button>
+                </div>
+            ) : null}
+
+            <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-slate-900">Your Teams</h2>
+                {isLoading ? (
                 <div className="flex h-64 items-center justify-center">
                     <Spinner size="lg" />
                 </div>
@@ -63,22 +214,18 @@ export default function TeamsPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-slate-900">No teams to show yet</h3>
                     <p className="mt-2 text-slate-500">
-                        Join a project team from the projects section to see your teams here.
+                        Create your own team or send a request to join a team below.
                     </p>
-
-                    <div className="mt-6">
-                        <Link href="/projects">
-                            <Button className="gap-2">
-                                Explore Projects
-                                <ArrowRight className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                    </div>
                 </div>
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {teams.map((team) => (
-                        <div key={team.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <button
+                            key={team.id}
+                            type="button"
+                            onClick={() => router.push(`/teams/${team.id}`)}
+                            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
+                        >
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <h3 className="truncate text-lg font-semibold text-slate-900">{team.name || 'Untitled Team'}</h3>
                                 <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
@@ -91,10 +238,110 @@ export default function TeamsPage() {
                                 <span>{team.members?.length || team.teamMemberCount || 0} members</span>
                                 <span>Capacity {team.capacity || team.teamCapacity || 0}</span>
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
-            )}
+                )}
+            </section>
+
+            <section className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold text-slate-900">Incoming Join Requests</h2>
+                    <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">
+                        {incomingRequests.length}
+                    </Badge>
+                </div>
+
+                {incomingRequestsLoading ? (
+                    <div className="flex h-32 items-center justify-center">
+                        <Spinner size="lg" />
+                    </div>
+                ) : incomingRequests.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+                        No pending requests for your teams right now.
+                    </div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {incomingRequests.map((request) => (
+                            <div key={request.id} className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    Team: {request.teamName}
+                                </p>
+                                <JoinRequestCard
+                                    request={{
+                                        id: request.id,
+                                        projectId: request.teamId,
+                                        userId: request.userId,
+                                        moodleId: request.userMoodleId || request.userId,
+                                        message: request.message || 'Would like to join your team.',
+                                        role: 'MEMBER',
+                                        status: request.status,
+                                        createdAt: request.createdAt,
+                                        user: {
+                                            id: request.userId,
+                                            name: request.userName,
+                                            email: request.userEmail,
+                                            avatarUrl: request.userAvatarUrl,
+                                            role: 'STUDENT',
+                                            skills: [],
+                                            followersCount: 0,
+                                            followingCount: 0,
+                                            projectsCount: 0,
+                                            createdAt: request.createdAt,
+                                        },
+                                    }}
+                                    onAccept={(requestId) => handleRespondJoinRequest(requestId, 'APPROVE')}
+                                    onReject={(requestId) => handleRespondJoinRequest(requestId, 'REJECT')}
+                                    disabled={respondingRequestId === request.id}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
+
+            <section className="space-y-4">
+                <h2 className="text-xl font-semibold text-slate-900">Discover Teams</h2>
+                {joinFeedback ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                        {joinFeedback}
+                    </div>
+                ) : null}
+                {discoverLoading ? (
+                    <div className="flex h-32 items-center justify-center">
+                        <Spinner size="lg" />
+                    </div>
+                ) : discoverTeams.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+                        No available teams to join right now.
+                    </div>
+                ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {discoverTeams.map((team) => (
+                            <div key={team.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <h3 className="truncate text-lg font-semibold text-slate-900">{team.name || 'Untitled Team'}</h3>
+                                    <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">
+                                        {team.teamMemberCount || team.members.length}/{team.capacity || team.teamCapacity || 0}
+                                    </span>
+                                </div>
+                                <p className="line-clamp-2 text-sm text-slate-600 mb-4">
+                                    {team.description || 'No description available.'}
+                                </p>
+                                <Button
+                                    className="w-full"
+                                    variant="outline"
+                                    onClick={() => handleJoinTeam(team.id)}
+                                    isLoading={joiningTeamId === team.id}
+                                    disabled={joiningTeamId !== null && joiningTeamId !== team.id}
+                                >
+                                    Request to Join
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
         </div>
     );
 }
