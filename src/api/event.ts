@@ -1,6 +1,8 @@
 import api from '@/lib/axios';
 import { Event, APIResponse } from '@/types';
 
+const isMockApiEnabled = process.env.NEXT_PUBLIC_ENABLE_MOCK_API === 'true';
+
 type CreateEventPayload = {
     title: string;
     description: string;
@@ -20,9 +22,16 @@ type BackendEvent = {
     location: string;
     start_date: string;
     end_date: string;
+    status?: string;
     attendee_count?: number;
     capacity?: number;
     tags?: string[];
+    type?: Event['type'];
+    is_registered?: boolean;
+    organizer_id?: string;
+    organizer?: {
+        id?: string;
+    };
     created_at?: string;
 };
 
@@ -103,17 +112,45 @@ function writeMockInterestState(state: Record<string, boolean>) {
     }
 }
 
+function inferEventType(event: BackendEvent): Event['type'] {
+    if (event.type) return event.type;
+
+    const joinedText = [
+        event.title,
+        event.description,
+        ...(Array.isArray(event.tags) ? event.tags : []),
+    ]
+        .join(' ')
+        .toLowerCase();
+
+    if (joinedText.includes('hackathon')) return 'HACKATHON';
+    if (joinedText.includes('workshop')) return 'WORKSHOP';
+    if (joinedText.includes('meetup') || joinedText.includes('orientation') || joinedText.includes('seminar')) {
+        return 'MEETUP';
+    }
+
+    return 'OTHER';
+}
+
 const mapBackendEvent = (event: BackendEvent): Event => ({
     id: event.id,
     title: event.title,
     description: event.description,
     date: event.start_date,
+    endDate: event.end_date,
+    status: event.status as Event['status'],
     location: event.location,
     isOnline: false,
     interestedCount: event.attendee_count ?? 0,
-    isInterested: false,
+    capacity: event.capacity ?? undefined,
+    isInterested: Boolean(event.is_registered),
     thumbnailUrl: event.image_url ?? undefined,
-    type: 'OTHER',
+    type: inferEventType(event),
+    organizerId: event.organizer_id
+        ? String(event.organizer_id)
+        : event.organizer?.id
+            ? String(event.organizer.id)
+            : undefined,
     createdAt: event.created_at ?? event.start_date,
 });
 
@@ -131,19 +168,25 @@ function applyMockInterestOverrides(event: Event, state: Record<string, boolean>
 export const eventApi = {
     getEvents: async (): Promise<APIResponse<Event[]>> => {
         const response = await api.get<APIResponse<BackendEvent[]>>('/events/');
-        const mockInterestState = readMockInterestState();
         const backendEvents = Array.isArray(response.data.data)
             ? response.data.data.map(mapBackendEvent)
             : [];
 
-        const mergedMap = new Map<string, Event>();
-        [...backendEvents, ...MOCK_EVENTS].forEach((event) => {
-            mergedMap.set(event.id, event);
-        });
+        let events = [...backendEvents];
 
-        const events = Array.from(mergedMap.values())
-            .map((event) => applyMockInterestOverrides(event, mockInterestState))
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        if (isMockApiEnabled) {
+            const mockInterestState = readMockInterestState();
+            const mergedMap = new Map<string, Event>();
+            [...backendEvents, ...MOCK_EVENTS].forEach((event) => {
+                mergedMap.set(event.id, event);
+            });
+
+            events = Array.from(mergedMap.values()).map((event) =>
+                applyMockInterestOverrides(event, mockInterestState)
+            );
+        }
+
+        events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         return {
             ...response.data,
@@ -210,5 +253,10 @@ export const eventApi = {
             ...response.data,
             data: mapBackendEvent(response.data.data),
         };
+    },
+
+    deleteEvent: async (id: string): Promise<APIResponse<void>> => {
+        const response = await api.delete(`/events/${id}/`);
+        return response.data;
     },
 };

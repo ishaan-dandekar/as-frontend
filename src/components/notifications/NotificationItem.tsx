@@ -22,6 +22,7 @@ const icons = {
     REQUEST_REJECTED: XCircle,
     NEW_FOLLOWER: UserPlus,
     PROJECT_UPDATE: Bell,
+    TEAM_UPDATE: Bell,
 };
 
 const colors = {
@@ -30,6 +31,7 @@ const colors = {
     REQUEST_REJECTED: 'text-red-500 bg-red-50',
     NEW_FOLLOWER: 'text-purple-500 bg-purple-50',
     PROJECT_UPDATE: 'text-amber-500 bg-amber-50',
+    TEAM_UPDATE: 'text-indigo-500 bg-indigo-50',
 };
 
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {

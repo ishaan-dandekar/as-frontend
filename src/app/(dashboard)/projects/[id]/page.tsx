@@ -19,7 +19,7 @@ import {
     MessageSquare,
     ChevronRight
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/hooks/useUser';
 import { formatDate } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 
@@ -28,7 +28,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 export default function ProjectDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { user } = useAuth();
+    const { profile } = useUser();
     const queryClient = useQueryClient();
     const id = params.id as string;
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
@@ -43,12 +43,12 @@ export default function ProjectDetailPage() {
     const { data: teamRes } = useQuery({
         queryKey: ['team', id],
         queryFn: () => teamApi.getTeamByProjectId(id),
-        enabled: Boolean(projectRes?.data?.teamId),
+        enabled: Boolean(projectRes?.data),
     });
 
     const project = projectRes?.data;
     const team = teamRes?.data;
-    const isOwner = user?.id === project?.ownerId;
+    const isOwner = profile?.id === project?.ownerId;
 
     const { data: joinRequestsRes, isLoading: isJoinRequestsLoading } = useQuery({
         queryKey: ['project-join-requests', id],

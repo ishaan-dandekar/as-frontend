@@ -1,4 +1,4 @@
-export type NotificationType = 'JOIN_REQUEST' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED' | 'NEW_FOLLOWER' | 'PROJECT_UPDATE';
+export type NotificationType = 'JOIN_REQUEST' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED' | 'NEW_FOLLOWER' | 'PROJECT_UPDATE' | 'TEAM_UPDATE';
 
 export interface Notification {
     id: string;
@@ -18,11 +18,15 @@ export interface Event {
     title: string;
     description: string;
     date: string;
+    endDate?: string;
+    status?: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
     location?: string;
     isOnline: boolean;
     interestedCount: number;
+    capacity?: number;
     isInterested?: boolean;
     thumbnailUrl?: string;
     type: EventType;
+    organizerId?: string;
     createdAt: string;
 }
