@@ -38,10 +38,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
             >
                 {showEducationalBackdrop && (
                     <div className="pointer-events-none absolute inset-0 -z-10">
-                        <div className="absolute inset-0 bg-ambient opacity-70" />
-                        <div className="absolute inset-0 bg-grid opacity-30" />
-                        <div className="absolute inset-0 bg-edu opacity-18 bg-parallax" />
-                        <div className="absolute inset-0 bg-edu-2 opacity-12 bg-parallax" />
+                        <div className="absolute inset-0 bg-ambient opacity-82" />
+                        <div className="absolute inset-0 bg-grid opacity-44" />
+                        <div className="absolute inset-0 bg-edu opacity-26 bg-parallax" />
+                        <div className="absolute inset-0 bg-edu-2 opacity-19 bg-parallax mix-blend-multiply" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/18" />
                         <div className="absolute left-[6%] top-[14%] rotate-[-6deg] rounded-full border border-emerald-200/40 bg-white/55 px-3 py-1.5 text-[9px] font-semibold text-emerald-700/75 shadow-soft animate-float-slower">
                             a^2 + b^2 = c^2
                         </div>

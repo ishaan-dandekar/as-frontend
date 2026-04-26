@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CalendarDays, Compass, Rocket, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const valueProps = [
     {
@@ -96,6 +97,10 @@ export function Hero() {
             </div>
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="mb-6 flex justify-end">
+                    <ThemeToggle />
+                </div>
+
                 <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
                     <div className="text-center lg:text-left">
                         <p className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 shadow-soft">

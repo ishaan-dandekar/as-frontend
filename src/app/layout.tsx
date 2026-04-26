@@ -30,10 +30,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var saved=localStorage.getItem('theme');var system=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var theme=(saved==='dark'||saved==='light')?saved:system;document.documentElement.setAttribute('data-theme',theme);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
+          }}
+        />
+      </head>
       <body
         suppressHydrationWarning
         className={cn(
-          "antialiased bg-app text-slate-900",
+          "antialiased bg-app text-slate-900 transition-colors duration-300",
           manrope.variable,
           spaceGrotesk.variable
         )}
