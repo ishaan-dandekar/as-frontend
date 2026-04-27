@@ -42,8 +42,8 @@ export function ProfileStats({ followers, following, projects, activeProjects = 
     ];
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Overview</h3>
+        <div className="surface-elevated rounded-2xl p-4">
+            <h3 className="text-app-muted mb-3 text-sm font-semibold uppercase tracking-[0.12em]">Overview</h3>
             <div className="grid grid-cols-2 gap-3">
                 {stats.map((stat) => {
                 const Icon = stat.icon;
@@ -51,16 +51,16 @@ export function ProfileStats({ followers, following, projects, activeProjects = 
                 return (
                     <div
                         key={stat.label}
-                        className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                        className="border-app bg-surface-strong rounded-xl border p-3"
                     >
                         <div className="flex flex-col items-center gap-2 text-center">
                             <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${stat.iconBg}`}>
                                 <Icon className={`h-4 w-4 ${stat.iconClass}`} />
                             </div>
-                            <span className="text-xl font-bold text-slate-900">
+                            <span className="text-app text-xl font-bold">
                                 {stat.value}
                             </span>
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                            <span className="text-app-muted text-[11px] font-semibold uppercase tracking-[0.12em]">
                                 {stat.label}
                             </span>
                         </div>

@@ -1,12 +1,11 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useUser } from '@/hooks/useUser';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { Spinner } from '@/components/ui/Spinner';
 import { ProjectCard } from '@/components/projects/ProjectCard';
-import { GitHubStats } from '@/components/profile/GitHubStats';
-import { LeetCodeStats } from '@/components/profile/LeetCodeStats';
 import { Project } from '@/types';
 import { githubApi, GitHubRepo, GitHubStats as GitHubStatsType } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
@@ -18,6 +17,20 @@ import { useQuery } from '@tanstack/react-query';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+const GitHubStats = dynamic(
+    () => import('@/components/profile/GitHubStats').then((mod) => mod.GitHubStats),
+    {
+        loading: () => <div className="surface-elevated h-56 animate-pulse rounded-2xl" />,
+    }
+);
+
+const LeetCodeStats = dynamic(
+    () => import('@/components/profile/LeetCodeStats').then((mod) => mod.LeetCodeStats),
+    {
+        loading: () => <div className="surface-elevated h-56 animate-pulse rounded-2xl" />,
+    }
+);
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -311,10 +324,10 @@ export default function ProfilePage() {
                 </aside>
 
                 <section className="space-y-6 lg:col-span-2">
-                    <div id="my-projects" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div id="my-projects" className="surface-elevated rounded-2xl p-6">
                         <div className="mb-4 flex items-center justify-between">
-                            <h2 className="font-display text-2xl font-bold text-slate-900">My Projects</h2>
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+                            <h2 className="font-display text-app text-2xl font-bold">My Projects</h2>
+                            <span className="border-app bg-surface-strong text-app-muted rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
                                 {totalProjectsCount} Total
                             </span>
                         </div>
@@ -324,8 +337,8 @@ export default function ProfilePage() {
                                 <Spinner />
                             </div>
                         ) : visibleProjects.length === 0 && pinnedRepos.length === 0 && allGithubRepos.length === 0 ? (
-                            <div className="flex h-44 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                                <p className="text-slate-500">No project showcase yet. Publish your first project to appear here.</p>
+                            <div className="border-app bg-surface-strong flex h-44 flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center">
+                                <p className="text-app-muted">No project showcase yet. Publish your first project to appear here.</p>
                             </div>
                         ) : visibleProjects.length > 0 ? (
                             <div className="grid gap-6 sm:grid-cols-2">
@@ -340,15 +353,15 @@ export default function ProfilePage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                                    <p className="text-sm font-semibold text-slate-800">Pinned showcase settings</p>
-                                    <p className="mt-1 text-xs text-slate-500">Choose projects of your choice and write your own description for each pinned card.</p>
+                                <div className="border-app bg-surface-strong rounded-xl border p-4">
+                                    <p className="text-app text-sm font-semibold">Pinned showcase settings</p>
+                                    <p className="text-app-muted mt-1 text-xs">Choose projects of your choice and write your own description for each pinned card.</p>
 
                                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                                         <select
                                             value={selectedRepoId}
                                             onChange={(e) => setSelectedRepoId(e.target.value)}
-                                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-400"
+                                            className="border-app bg-surface text-app w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-[color:var(--brand)]"
                                         >
                                             <option value="">Select a GitHub repo to pin</option>
                                             {availableReposToPin.map((repo) => (
@@ -361,7 +374,7 @@ export default function ProfilePage() {
                                             type="button"
                                             onClick={handlePinSelectedRepo}
                                             disabled={!selectedRepoId}
-                                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
                                         >
                                             <Plus className="h-4 w-4" />
                                             Pin Project
@@ -370,7 +383,7 @@ export default function ProfilePage() {
                                             type="button"
                                             onClick={refreshRepoOptions}
                                             disabled={isRefreshingRepoOptions}
-                                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="border-app bg-surface text-app inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             <RefreshCw className={`h-4 w-4 ${isRefreshingRepoOptions ? 'animate-spin' : ''}`} />
                                             Refresh Repos
@@ -379,8 +392,8 @@ export default function ProfilePage() {
                                 </div>
 
                                 {pinnedRepos.length === 0 ? (
-                                    <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                                        <p className="text-slate-600">No pinned projects yet. Select a repository above to start your custom showcase.</p>
+                                    <div className="border-app bg-surface-strong flex h-32 flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center">
+                                        <p className="text-app-soft">No pinned projects yet. Select a repository above to start your custom showcase.</p>
                                     </div>
                                 ) : (
                                     <div className="grid gap-6 sm:grid-cols-2">
@@ -389,14 +402,14 @@ export default function ProfilePage() {
                                             const customDescription = repoDescriptions[repoId] || '';
 
                                             return (
-                                                <div key={repo.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 transition-shadow hover:shadow-md">
+                                                <div key={repo.id} className="border-app bg-surface-strong rounded-2xl border p-5 transition-shadow hover:shadow-md">
                                                     <div className="flex items-start justify-between gap-3">
-                                                        <h3 className="text-lg font-semibold text-slate-900 line-clamp-1">{repo.name}</h3>
+                                                        <h3 className="text-app line-clamp-1 text-lg font-semibold">{repo.name}</h3>
                                                         <div className="flex items-center gap-1">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUnpinRepo(repoId)}
-                                                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-rose-600"
+                                                                className="text-app-muted hover:bg-surface rounded-lg p-1.5 hover:text-rose-600"
                                                                 aria-label={`Unpin ${repo.name}`}
                                                             >
                                                                 <X className="h-4 w-4" />
@@ -405,7 +418,7 @@ export default function ProfilePage() {
                                                                 href={repo.html_url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                                                className="text-app-muted hover:bg-surface hover:text-app rounded-lg p-1.5"
                                                             >
                                                                 <ExternalLink className="h-4 w-4" />
                                                             </Link>
@@ -422,7 +435,7 @@ export default function ProfilePage() {
                                                             }));
                                                         }}
                                                         placeholder={repo.description || 'Add your own showcase description for this pinned project'}
-                                                        className="mt-2 min-h-20 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-400"
+                                                        className="border-app bg-surface text-app mt-2 min-h-20 w-full resize-y rounded-lg border px-3 py-2 text-sm outline-none focus:border-[color:var(--brand)]"
                                                     />
 
                                                     <div className="mt-4 flex flex-wrap gap-2">

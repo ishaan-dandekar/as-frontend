@@ -83,7 +83,7 @@ export default function TeamDetailPage() {
     };
 
     const handleRemoveMember = (member: TeamMember) => {
-        if (!isOwner || removingMemberId || member.role === 'OWNER') return;
+        if (!isOwner || removingMemberId || member.role === 'OWNER' || member.userId === team?.ownerId) return;
         const confirmed = window.confirm(`Remove ${member.name} from this team?`);
         if (!confirmed) return;
 
@@ -173,7 +173,7 @@ export default function TeamDetailPage() {
                             <TeamMemberCard
                                 key={member.userId}
                                 member={member}
-                                canRemove={isOwner && member.role !== 'OWNER'}
+                                canRemove={isOwner && member.role !== 'OWNER' && member.userId !== team.ownerId}
                                 isRemoving={removingMemberId === member.userId}
                                 onRemove={handleRemoveMember}
                             />

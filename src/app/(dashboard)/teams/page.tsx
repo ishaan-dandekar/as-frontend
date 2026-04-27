@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Inbox, Plus, Search, UserPlus, Users } from 'lucide-react';
@@ -27,14 +27,14 @@ function SummaryCard({
     icon: typeof Users;
 }) {
     return (
-        <div className="rounded-2xl border border-app bg-surface-strong p-4">
-            <div className="flex items-center justify-between gap-3">
+        <div className="rounded-[24px] border border-app bg-surface p-5 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.35)]">
+            <div className="flex items-start justify-between gap-4">
                 <div>
-                    <p className="text-app-muted text-xs font-semibold uppercase tracking-[0.14em]">{label}</p>
-                    <p className="text-app mt-2 text-2xl font-bold">{value}</p>
-                    <p className="text-app-soft mt-1 text-sm">{helper}</p>
+                    <p className="text-app text-sm font-semibold">{label}</p>
+                    <p className="text-app mt-3 text-3xl font-bold tracking-tight">{value}</p>
+                    <p className="text-app-soft mt-2 max-w-[18rem] text-sm leading-6">{helper}</p>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[color:var(--brand-soft)]/80 text-[color:var(--brand-strong)]">
                     <Icon className="h-5 w-5" />
                 </div>
             </div>
@@ -56,6 +56,7 @@ export default function TeamsPage() {
     const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
     const [teamSearch, setTeamSearch] = useState('');
+    const deferredTeamSearch = useDeferredValue(teamSearch);
 
     useEffect(() => {
         if (profileLoading || profile) return;
@@ -67,6 +68,8 @@ export default function TeamsPage() {
         queryFn: () => teamApi.getMyTeams(),
         retry: false,
         enabled: !!profile,
+        staleTime: 2 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
     });
 
     const { data: discoverRes, isLoading: discoverLoading } = useQuery({
@@ -74,6 +77,8 @@ export default function TeamsPage() {
         queryFn: () => teamApi.discoverTeams(),
         retry: false,
         enabled: !!profile,
+        staleTime: 2 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
     });
 
     const { data: incomingRequestsRes, isLoading: incomingRequestsLoading } = useQuery({
@@ -81,6 +86,8 @@ export default function TeamsPage() {
         queryFn: () => teamApi.getIncomingJoinRequests(),
         retry: false,
         enabled: !!profile,
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
     });
 
     const createTeamMutation = useMutation({
@@ -118,7 +125,7 @@ export default function TeamsPage() {
     const teams = useMemo(() => (teamsRes?.data || []) as Team[], [teamsRes?.data]);
     const discoverTeams = useMemo(() => (discoverRes?.data || []) as Team[], [discoverRes?.data]);
     const incomingRequests = incomingRequestsRes?.data?.items || [];
-    const normalizedTeamSearch = teamSearch.trim().toLowerCase();
+    const normalizedTeamSearch = deferredTeamSearch.trim().toLowerCase();
 
     const filteredDiscoverTeams = useMemo(() => {
         if (!normalizedTeamSearch) return discoverTeams;
@@ -197,36 +204,30 @@ export default function TeamsPage() {
 
     return (
         <div className="space-y-8">
-            <Breadcrumbs items={[{ label: 'Teams' }]} />
+            <Breadcrumbs items={[{ label: 'Collaboration' }]} />
 
-            <section className="hero-panel rounded-[30px] p-6 sm:p-7">
-                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="max-w-2xl space-y-3">
-                        <div>
-                            <h1 className="font-display text-3xl font-bold text-app sm:text-4xl">Teams</h1>
-                            <p className="text-app-soft mt-2 max-w-2xl text-sm sm:text-base">
-                                Create your crew, review incoming requests, and discover teams that match your interests without losing track of capacity or momentum.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
+            <section className="surface-elevated rounded-[34px] px-6 py-7 sm:px-8">
+                <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="flex flex-col items-start gap-3 xl:items-end">
                         <Button className="gap-2" onClick={() => setShowCreateForm((prev) => !prev)}>
                             <Plus className="h-4 w-4" />
                             {showCreateForm ? 'Close Form' : 'Create Team'}
                         </Button>
+                        <p className="text-app-muted text-sm">
+                            {teams.length > 0 ? `${teams.length} team${teams.length === 1 ? '' : 's'} in your workspace` : 'Start with a small focused team'}
+                        </p>
                     </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <SummaryCard
-                        label="Your Teams"
+                        label="Your teams"
                         value={teams.length}
                         helper="Teams you own or belong to"
                         icon={Users}
                     />
                     <SummaryCard
-                        label="Open Requests"
+                        label="Open requests"
                         value={incomingRequests.length}
                         helper="Pending join approvals"
                         icon={Inbox}
@@ -234,31 +235,28 @@ export default function TeamsPage() {
                     <SummaryCard
                         label="Discoverable"
                         value={filteredDiscoverTeams.length}
-                        helper="Teams currently open to explore"
+                        helper="Groups currently open to explore"
                         icon={Search}
                     />
                     <SummaryCard
-                        label="Total Seats"
+                        label="Total seats"
                         value={totalDiscoverCapacity}
-                        helper="Capacity across discover teams"
+                        helper="Capacity across discoverable groups"
                         icon={UserPlus}
                     />
                 </div>
             </section>
 
             {showCreateForm ? (
-                <section className="surface-elevated rounded-[28px] p-6">
-                    <div className="mb-5 flex items-center justify-between gap-3">
+                <section className="surface-elevated rounded-[30px] p-6 sm:p-7">
+                    <div className="mb-6 flex items-center justify-between gap-3">
                         <div>
                             <h2 className="text-app text-2xl font-semibold">Create a New Team</h2>
-                            <p className="text-app-soft mt-1 text-sm">Set a clear team identity so others understand the mission before they request to join.</p>
+                            <p className="text-app-soft mt-1 text-sm leading-6">Write this the way you would pitch the group to a classmate in person.</p>
                         </div>
-                        <Badge variant="secondary" className="bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
-                            Step 1
-                        </Badge>
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.55fr]">
+                    <div className="grid gap-5 lg:grid-cols-[1.15fr_0.6fr]">
                         <div className="space-y-4">
                             <Input
                                 label="Team Name"
@@ -278,7 +276,7 @@ export default function TeamsPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-4 rounded-2xl border border-app bg-surface-strong p-4">
+                        <div className="space-y-4 rounded-[24px] border border-app bg-surface-strong p-5">
                             <Input
                                 label="Capacity"
                                 type="number"
@@ -287,9 +285,9 @@ export default function TeamsPage() {
                                 value={teamCapacity}
                                 onChange={(event) => setTeamCapacity(event.target.value)}
                             />
-                            <div className="rounded-2xl border border-app bg-surface p-4">
-                                <p className="text-app-muted text-xs font-semibold uppercase tracking-[0.14em]">Quick Guidance</p>
-                                <p className="text-app-soft mt-2 text-sm">
+                            <div className="rounded-[20px] border border-app bg-surface p-4">
+                                <p className="text-app text-sm font-semibold">A good starting point</p>
+                                <p className="text-app-soft mt-2 text-sm leading-6">
                                     Small focused teams usually work best between 3 and 6 members. Keep the description concrete so the right people apply.
                                 </p>
                             </div>
@@ -303,14 +301,14 @@ export default function TeamsPage() {
                 </section>
             ) : null}
 
-            <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                <section className="surface-elevated rounded-[28px] p-6">
+            <div className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
+                <section className="surface-elevated rounded-[30px] p-6 sm:p-7">
                     <div className="mb-5 flex items-center justify-between gap-3">
                         <div>
                             <h2 className="text-app text-2xl font-semibold">Your Teams</h2>
-                            <p className="text-app-soft mt-1 text-sm">Open any team to manage members, capacity, and project context.</p>
+                            <p className="text-app-soft mt-1 text-sm leading-6">Open a group to manage members, capacity, and project context without jumping between screens.</p>
                         </div>
-                        <Badge variant="secondary" className="bg-surface-strong text-app">{teams.length}</Badge>
+                        <Badge variant="secondary" className="bg-surface-strong px-3 py-1 text-app">{teams.length}</Badge>
                     </div>
 
                     {isLoading ? (
@@ -337,29 +335,29 @@ export default function TeamsPage() {
                                     key={team.id}
                                     type="button"
                                     onClick={() => router.push(`/teams/${team.id}`)}
-                                    className="group rounded-[24px] border border-app bg-surface-strong p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-app-strong hover:shadow-soft"
+                                    className="group rounded-[26px] border border-app bg-surface-strong p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-app-strong hover:bg-surface hover:shadow-soft"
                                 >
-                                    <div className="mb-4 flex items-start justify-between gap-3">
+                                    <div className="mb-5 flex items-start justify-between gap-3">
                                         <div>
                                             <h3 className="text-app text-lg font-semibold">{team.name || 'Untitled Team'}</h3>
-                                            <p className="text-app-soft mt-1 line-clamp-2 text-sm">
+                                            <p className="text-app-soft mt-2 line-clamp-2 text-sm leading-6">
                                                 {team.description || 'No description available.'}
                                             </p>
                                         </div>
-                                        <span className="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">
+                                        <span className="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-sm font-semibold text-[color:var(--brand-strong)]">
                                             {team.members?.length || team.teamMemberCount || 0}/{team.capacity || team.teamCapacity || 0}
                                         </span>
                                     </div>
 
-                                    <div className="mb-4 flex flex-wrap gap-2">
+                                    <div className="mb-5 flex flex-wrap gap-2">
                                         {(team.searchKeywords || []).slice(0, 4).map((keyword) => (
-                                            <Badge key={keyword} variant="outline" className="border-app bg-surface text-app-soft font-normal">
+                                            <Badge key={keyword} variant="outline" className="rounded-full border-app bg-surface text-app-soft font-normal">
                                                 {keyword}
                                             </Badge>
                                         ))}
                                     </div>
 
-                                    <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center justify-between border-t border-app pt-4 text-sm">
                                         <span className="text-app-soft">{team.members?.length || team.teamMemberCount || 0} members</span>
                                         <span className="text-app-soft">Capacity {team.capacity || team.teamCapacity || 0}</span>
                                     </div>
@@ -369,13 +367,13 @@ export default function TeamsPage() {
                     )}
                 </section>
 
-                <section className="surface-elevated rounded-[28px] p-6">
+                <section className="surface-elevated rounded-[30px] p-6 sm:p-7">
                     <div className="mb-5 flex items-center justify-between gap-3">
                         <div>
                             <h2 className="text-app text-2xl font-semibold">Incoming Join Requests</h2>
-                            <p className="text-app-soft mt-1 text-sm">Review requests from students who want to contribute to your teams.</p>
+                            <p className="text-app-soft mt-1 text-sm leading-6">Review requests from students who want to contribute to your groups.</p>
                         </div>
-                        <Badge variant="secondary" className="bg-surface-strong text-app">{incomingRequests.length}</Badge>
+                        <Badge variant="secondary" className="bg-surface-strong px-3 py-1 text-app">{incomingRequests.length}</Badge>
                     </div>
 
                     {incomingRequestsLoading ? (
@@ -394,7 +392,7 @@ export default function TeamsPage() {
                         <div className="space-y-4">
                             {incomingRequests.map((request) => (
                                 <div key={request.id} className="rounded-[24px] border border-app bg-surface-strong p-4">
-                                    <p className="text-app-muted mb-3 text-xs font-semibold uppercase tracking-[0.14em]">
+                                    <p className="text-app-muted mb-3 text-xs font-semibold tracking-[0.08em]">
                                         Team: {request.teamName}
                                     </p>
                                     <JoinRequestCard
@@ -430,11 +428,11 @@ export default function TeamsPage() {
                 </section>
             </div>
 
-            <section className="surface-elevated rounded-[28px] p-6">
+            <section className="surface-elevated rounded-[30px] p-6 sm:p-7">
                 <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <h2 className="text-app text-2xl font-semibold">Discover Teams</h2>
-                        <p className="text-app-soft mt-1 text-sm">Search by description keywords and request to join teams that fit your goals.</p>
+                        <p className="text-app-soft mt-1 text-sm leading-6">Search by description keywords and look for groups that feel like a natural fit.</p>
                     </div>
                     <div className="w-full max-w-2xl">
                         <Input
@@ -458,38 +456,38 @@ export default function TeamsPage() {
                         <Spinner size="lg" />
                     </div>
                 ) : filteredDiscoverTeams.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-app bg-surface-strong p-10 text-center">
-                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-app-soft">
-                            <Search className="h-6 w-6" />
-                        </div>
+                        <div className="rounded-2xl border border-dashed border-app bg-surface-strong p-10 text-center">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-app-soft">
+                                <Search className="h-6 w-6" />
+                            </div>
                         <h3 className="text-app text-lg font-semibold">No matching teams right now</h3>
                         <p className="text-app-soft mt-2 text-sm">Try a broader keyword or clear the search to see all discoverable teams.</p>
                     </div>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {filteredDiscoverTeams.map((team) => (
-                            <div key={team.id} className="flex flex-col rounded-[24px] border border-app bg-surface-strong p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-app-strong hover:shadow-soft">
-                                <div className="mb-4 flex items-start justify-between gap-3">
+                            <div key={team.id} className="flex flex-col rounded-[26px] border border-app bg-surface-strong p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-app-strong hover:bg-surface hover:shadow-soft">
+                                <div className="mb-5 flex items-start justify-between gap-3">
                                     <div>
                                         <h3 className="text-app text-lg font-semibold">{team.name || 'Untitled Team'}</h3>
-                                        <p className="text-app-soft mt-1 line-clamp-3 text-sm">
+                                        <p className="text-app-soft mt-2 line-clamp-3 text-sm leading-6">
                                             {team.description || 'No description available.'}
                                         </p>
                                     </div>
-                                    <span className="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">
+                                    <span className="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-sm font-semibold text-[color:var(--brand-strong)]">
                                         {team.teamMemberCount || team.members.length}/{team.capacity || team.teamCapacity || 0}
                                     </span>
                                 </div>
 
-                                <div className="mb-4 flex flex-wrap gap-2">
+                                <div className="mb-5 flex flex-wrap gap-2">
                                     {(team.searchKeywords || []).slice(0, 5).map((keyword) => (
-                                        <Badge key={keyword} variant="outline" className="border-app bg-surface text-app-soft font-normal text-xs">
+                                        <Badge key={keyword} variant="outline" className="rounded-full border-app bg-surface text-app-soft font-normal text-xs">
                                             {keyword}
                                         </Badge>
                                     ))}
                                 </div>
 
-                                <div className="mt-auto flex items-center justify-between gap-3">
+                                <div className="mt-auto flex items-center justify-between gap-3 border-t border-app pt-4">
                                     <div className="text-app-soft text-sm">
                                         {team.teamMemberCount || team.members.length} members
                                     </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -8,13 +9,19 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useUser } from '@/hooks/useUser';
 import { Avatar } from '@/components/ui/Avatar';
-import { ProfileIntegrations } from '@/components/profile/ProfileIntegrations';
 import { githubApi } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
 import { Badge } from '@/components/ui/Badge';
 import { GraduationCap, Hash, PencilLine, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { POPULAR_SKILL_TAGS, normalizeSkillTag, normalizeSkillTags, parseSkillInput } from '@/lib/skills';
 import { formatAcademicProfile, formatUserRole } from '@/lib/profileDisplay';
+
+const ProfileIntegrations = dynamic(
+    () => import('@/components/profile/ProfileIntegrations').then((mod) => mod.ProfileIntegrations),
+    {
+        loading: () => <div className="surface-elevated h-80 animate-pulse rounded-2xl" />,
+    }
+);
 
 export default function SettingsPage() {
     const { profile, isLoading, updateProfile, isUpdating } = useUser();
@@ -206,17 +213,17 @@ export default function SettingsPage() {
                 <div className="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
                     <div className="space-y-6">
                         <Card>
-                            <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-teal-50 via-white to-amber-50">
+                            <CardHeader className="profile-banner border-b border-app">
                                 <div className="flex items-center gap-4">
                                     <Avatar
                                         src={profile?.avatarUrl}
                                         fallback={profile?.name?.charAt(0) || 'U'}
-                                        className="h-16 w-16 border border-white shadow-sm"
+                                        className="border-app bg-surface-strong h-16 w-16 border shadow-sm"
                                     />
                                     <div>
-                                        <CardTitle className="text-xl text-slate-900">{profile?.name}</CardTitle>
-                                        <CardDescription>{profile?.email}</CardDescription>
-                                        <div className="mt-2 inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                                        <CardTitle className="text-app text-xl">{profile?.name}</CardTitle>
+                                        <CardDescription className="text-app-soft">{profile?.email}</CardDescription>
+                                        <div className="mt-2 inline-flex rounded-full bg-[color:var(--accent)] px-3 py-1 text-xs font-semibold text-white">
                                             {formatUserRole(profile?.role)}
                                         </div>
                                     </div>
@@ -224,31 +231,31 @@ export default function SettingsPage() {
                             </CardHeader>
                             <CardContent className="space-y-4 pt-6">
                                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                    <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                                        <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                             <Hash className="h-3.5 w-3.5" />
                                             UID
                                         </p>
-                                        <p className="mt-2 text-sm font-semibold text-slate-900">{profile?.uid || profile?.moodleId || 'Not available'}</p>
+                                        <p className="text-app mt-2 text-sm font-semibold">{profile?.uid || profile?.moodleId || 'Not available'}</p>
                                     </div>
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                    <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                                        <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                             <GraduationCap className="h-3.5 w-3.5" />
                                             Academic Snapshot
                                         </p>
-                                        <p className="mt-2 text-sm font-semibold text-slate-900">
+                                        <p className="text-app mt-2 text-sm font-semibold">
                                             {formatAcademicProfile(profile?.department || profile?.branch, profile?.academicStatus || profile?.year)}
                                         </p>
-                                        <p className="mt-1 text-xs text-slate-500">
+                                        <p className="text-app-muted mt-1 text-xs">
                                             Admission year: {profile?.admissionYear || 'Not available'}
                                         </p>
                                     </div>
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                    <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                                        <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                             <ShieldCheck className="h-3.5 w-3.5" />
                                             Role Access
                                         </p>
-                                        <p className="mt-2 text-sm font-semibold text-slate-900">{profile?.role === 'ADMIN' ? 'Admin can host and manage events.' : 'Student profile access is enabled.'}</p>
+                                        <p className="text-app mt-2 text-sm font-semibold">{profile?.role === 'ADMIN' ? 'Admin can host and manage events.' : 'Student profile access is enabled.'}</p>
                                     </div>
                                 </div>
                             </CardContent>

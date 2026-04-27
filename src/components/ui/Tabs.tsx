@@ -93,7 +93,8 @@ type TabsContentProps = {
     children: React.ReactNode;
 } & TabsInjectedProps;
 
-export function TabsContent({ value, className, children, activeValue, ...props }: TabsContentProps) {
+export function TabsContent({ value, className, children, activeValue, onValueChange, ...props }: TabsContentProps) {
+    void onValueChange;
 
     if (activeValue !== value) return null;
 

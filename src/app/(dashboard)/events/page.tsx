@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { eventApi } from '@/api/event';
 import { Event } from '@/types';
 import { EventCard } from '@/components/events/EventCard';
@@ -54,6 +55,7 @@ const useCountUp = (value: number, duration = 700) => {
 };
 
 export default function EventsPage() {
+    const router = useRouter();
     const queryClient = useQueryClient();
     const { profile } = useUser();
     const [activeTab, setActiveTab] = useState('upcoming');
@@ -235,19 +237,6 @@ export default function EventsPage() {
         return matchesSearch && matchesTab;
     }), [activeTab, events, searchQuery]);
 
-    const handleSpotlightMove = (event: React.MouseEvent<HTMLElement>) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        event.currentTarget.style.setProperty('--spotlight-x', `${x}px`);
-        event.currentTarget.style.setProperty('--spotlight-y', `${y}px`);
-    };
-
-    const resetSpotlight = (event: React.MouseEvent<HTMLElement>) => {
-        event.currentTarget.style.setProperty('--spotlight-x', '50%');
-        event.currentTarget.style.setProperty('--spotlight-y', '50%');
-    };
-
     return (
         <motion.div
             className="space-y-6"
@@ -273,32 +262,30 @@ export default function EventsPage() {
 
             {featuredEvent && (
                 <motion.div
-                    className="spotlight-card overflow-hidden rounded-2xl border border-white/70 bg-white/70 shadow-soft backdrop-blur-lg"
+                    className="surface-elevated overflow-hidden rounded-2xl"
                     variants={itemVariants}
-                    onMouseMove={handleSpotlightMove}
-                    onMouseLeave={resetSpotlight}
                 >
                     <div className="grid gap-6 p-5 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Featured Event</p>
-                            <h2 className="mt-2 text-2xl font-bold text-slate-900">{featuredEvent.title}</h2>
-                            <p className="mt-2 text-sm text-slate-600 line-clamp-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Featured Event</p>
+                            <h2 className="text-app mt-2 text-2xl font-bold">{featuredEvent.title}</h2>
+                            <p className="text-app-soft mt-2 line-clamp-3 text-sm">
                                 {featuredEvent.description}
                             </p>
-                            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                                <span className="rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1">
+                            <div className="text-app-soft mt-4 flex flex-wrap items-center gap-3 text-xs">
+                                <span className="rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
                                     {featuredEvent.date ? new Date(featuredEvent.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBA'}
                                     {featuredEvent.endDate && ` - ${new Date(featuredEvent.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                                 </span>
-                                <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1">
+                                <span className="border-app bg-surface rounded-full border px-3 py-1">
                                     {featuredEvent.isOnline ? 'Online' : (featuredEvent.location || 'TBA')}
                                 </span>
                             </div>
-                            <Button className="mt-4" variant="outline">
+                            <Button className="mt-4" variant="outline" onClick={() => router.push(`/events/${featuredEvent.id}`)}>
                                 View schedule
                             </Button>
                         </div>
-                        <div className="overflow-hidden rounded-xl border border-white/60 bg-white/60">
+                        <div className="border-app bg-surface overflow-hidden rounded-xl border">
                             <Image
                                 src="/featured-event.svg"
                                 alt="Featured event illustration"
@@ -313,39 +300,31 @@ export default function EventsPage() {
 
             <motion.div className="grid gap-4 sm:grid-cols-3" variants={itemVariants}>
                 <div
-                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg"
-                    onMouseMove={handleSpotlightMove}
-                    onMouseLeave={resetSpotlight}
+                    className="surface-elevated rounded-2xl p-4"
                 >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Upcoming</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{animatedUpcoming}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Upcoming</p>
+                    <p className="text-app mt-1 text-2xl font-bold">{animatedUpcoming}</p>
                 </div>
                 <div
-                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg"
-                    onMouseMove={handleSpotlightMove}
-                    onMouseLeave={resetSpotlight}
+                    className="surface-elevated rounded-2xl p-4"
                 >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Hackathons</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{animatedHackathon}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Hackathons</p>
+                    <p className="text-app mt-1 text-2xl font-bold">{animatedHackathon}</p>
                 </div>
                 <div
-                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg"
-                    onMouseMove={handleSpotlightMove}
-                    onMouseLeave={resetSpotlight}
+                    className="surface-elevated rounded-2xl p-4"
                 >
-                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Workshops</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{animatedWorkshop}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Workshops</p>
+                    <p className="text-app mt-1 text-2xl font-bold">{animatedWorkshop}</p>
                 </div>
             </motion.div>
 
             {profile?.role === 'ADMIN' && showHostForm && (
                 <motion.div
-                    className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg space-y-3"
+                    className="surface-elevated space-y-3 rounded-2xl p-4"
                     variants={itemVariants}
-                    onMouseMove={handleSpotlightMove}
-                    onMouseLeave={resetSpotlight}
                 >
-                    <h3 className="text-lg font-semibold text-slate-900">Host a New Event</h3>
+                    <h3 className="text-app text-lg font-semibold">Host a New Event</h3>
 
                     {hostError && (
                         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -407,7 +386,7 @@ export default function EventsPage() {
                 </motion.div>
             )}
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="surface-elevated flex flex-col gap-4 rounded-xl p-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 flex-1 max-w-md">
                     <Search className="h-4 w-4 text-slate-400" />
                     <input

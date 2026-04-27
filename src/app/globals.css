@@ -195,6 +195,22 @@ body {
     box-shadow: 0 28px 52px -38px rgba(2, 8, 18, 0.92);
   }
 
+  .profile-banner {
+    background:
+      linear-gradient(135deg, rgba(247, 252, 252, 0.98), rgba(255, 250, 240, 0.94)),
+      radial-gradient(circle at top left, var(--hero-glow), transparent 42%),
+      radial-gradient(circle at top right, var(--hero-glow-alt), transparent 36%);
+    border-bottom: 1px solid var(--border);
+  }
+
+  [data-theme='dark'] .profile-banner {
+    background:
+      linear-gradient(135deg, rgba(14, 24, 33, 0.98), rgba(18, 30, 40, 0.96)),
+      radial-gradient(circle at top left, var(--hero-glow), transparent 42%),
+      radial-gradient(circle at top right, var(--hero-glow-alt), transparent 36%);
+    border-bottom: 1px solid var(--border);
+  }
+
   .stat-shell {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 247, 251, 0.92));
     border: 1px solid var(--border);

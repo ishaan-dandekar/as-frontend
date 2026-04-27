@@ -24,22 +24,22 @@ export function TeamMemberCard({ member, canRemove = false, isRemoving = false, 
     const moodleLabel = member.moodleId || 'Moodle ID unavailable';
 
     return (
-        <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white hover:border-slate-200 transition-all">
+        <div className="border-app bg-surface-strong hover:border-app-strong hover:bg-surface flex items-center justify-between rounded-xl border p-4 transition-all">
             <div className="flex items-center gap-4">
                 <Avatar
                     src={member.avatarUrl}
                     fallback={member.name.charAt(0)}
-                    className="h-12 w-12"
+                    className="border-app h-12 w-12 border"
                 />
                 <div>
                     <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-slate-900">{member.name}</h4>
+                        <h4 className="text-app font-semibold">{member.name}</h4>
                         <Badge variant="secondary" className="text-[10px] uppercase font-bold">
                             {formatTeamRole(member.role)}
                         </Badge>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-slate-500">{moodleLabel}</span>
+                        <span className="text-app-muted text-xs">{moodleLabel}</span>
                     </div>
                 </div>
             </div>
@@ -57,14 +57,14 @@ export function TeamMemberCard({ member, canRemove = false, isRemoving = false, 
                 ) : null}
                 <a
                     href={`mailto:${member.email}`}
-                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    className="text-app-muted hover:text-app hover:bg-surface rounded-lg p-2 transition-all"
                     title="Send Email"
                 >
                     <Mail className="h-4 w-4" />
                 </a>
                 <Link
                     href={`/discover/${profileIdentifier}`}
-                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    className="text-app-muted hover:text-app hover:bg-surface rounded-lg p-2 transition-all"
                     title="View Profile"
                 >
                     <ExternalLink className="h-4 w-4" />

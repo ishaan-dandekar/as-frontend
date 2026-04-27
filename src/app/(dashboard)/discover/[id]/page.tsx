@@ -258,29 +258,29 @@ export default function DiscoverUserDetailPage() {
                 ]}
             />
 
-            <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-                <div className="bg-gradient-to-r from-teal-50 via-white to-amber-50 px-6 py-6">
+            <section className="surface-elevated overflow-hidden rounded-[28px]">
+                <div className="profile-banner px-6 py-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="flex items-center gap-4">
                             <Avatar
                                 src={profile.avatarUrl}
                                 fallback={(profile.name || 'U').charAt(0).toUpperCase()}
-                                className="h-16 w-16 border border-white bg-teal-100 text-lg font-bold text-teal-700"
+                                className="border-app bg-surface-strong text-app h-16 w-16 border text-lg font-bold"
                             />
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">{profile.name}</h1>
+                                    <h1 className="text-app text-2xl font-bold tracking-tight">{profile.name}</h1>
                                     {isCurrentUser && (
                                         <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
                                             You
                                         </span>
                                     )}
-                                    <Badge variant="secondary" className="bg-slate-900 text-white">
+                                    <Badge variant="secondary" className="bg-[color:var(--accent)] px-3 py-1 text-white">
                                         {profile.role === 'ADMIN' ? 'Admin' : 'Student'}
                                     </Badge>
                                 </div>
-                                <p className="text-sm text-slate-600">{profile.email}</p>
-                                {profile.bio && <p className="mt-2 max-w-2xl text-sm text-slate-500">{profile.bio}</p>}
+                                <p className="text-app-soft text-sm">{profile.email}</p>
+                                {profile.bio && <p className="text-app-muted mt-2 max-w-2xl text-sm">{profile.bio}</p>}
                             </div>
                         </div>
                     </div>
@@ -288,35 +288,35 @@ export default function DiscoverUserDetailPage() {
 
                 <div className="space-y-5 p-6">
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                            <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                 <Hash className="h-3.5 w-3.5" />
                                 UID
                             </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-900">{profile.uid || profile.moodleId || 'Not available'}</p>
+                            <p className="text-app mt-2 text-sm font-semibold">{profile.uid || profile.moodleId || 'Not available'}</p>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                            <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                 <GraduationCap className="h-3.5 w-3.5" />
                                 Academic
                             </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-900">
+                            <p className="text-app mt-2 text-sm font-semibold">
                                 {formatAcademicProfile(profile.department || profile.branch, profile.academicStatus || profile.year)}
                             </p>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                            <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                 <CalendarDays className="h-3.5 w-3.5" />
                                 Admission
                             </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-900">{profile.admissionYear || 'Not available'}</p>
+                            <p className="text-app mt-2 text-sm font-semibold">{profile.admissionYear || 'Not available'}</p>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        <div className="border-app bg-surface-strong rounded-2xl border p-4">
+                            <p className="text-app-muted flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em]">
                                 <ShieldCheck className="h-3.5 w-3.5" />
                                 Role
                             </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-900">{profile.role === 'ADMIN' ? 'Admin' : 'Student'}</p>
+                            <p className="text-app mt-2 text-sm font-semibold">{profile.role === 'ADMIN' ? 'Admin' : 'Student'}</p>
                         </div>
                     </div>
 
@@ -329,41 +329,41 @@ export default function DiscoverUserDetailPage() {
                         />
 
                         <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Active</p>
-                                <p className="mt-1 text-xl font-bold text-slate-900">{Number(profile.activeProjectsCount || activeProjectsCount)}</p>
+                            <div className="border-app bg-surface-strong rounded-xl border p-3">
+                                <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">Active</p>
+                                <p className="text-app mt-1 text-xl font-bold">{Number(profile.activeProjectsCount || activeProjectsCount)}</p>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">GitHub</p>
-                                <p className="mt-1 text-xl font-bold text-slate-900">
+                            <div className="border-app bg-surface-strong rounded-xl border p-3">
+                                <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">GitHub</p>
+                                <p className="text-app mt-1 text-xl font-bold">
                                     {formatGithubUsername(effectiveGithubUsername)}
                                 </p>
-                                <p className="text-xs text-slate-500">Username</p>
+                                <p className="text-app-muted text-xs">Username</p>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">LeetCode</p>
-                                <p className="mt-1 text-xl font-bold text-slate-900">
+                            <div className="border-app bg-surface-strong rounded-xl border p-3">
+                                <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">LeetCode</p>
+                                <p className="text-app mt-1 text-xl font-bold">
                                     {effectiveLeetCodeUsername || 'Not linked'}
                                 </p>
-                                <p className="text-xs text-slate-500">Username</p>
+                                <p className="text-app-muted text-xs">Username</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="surface-elevated rounded-2xl p-6">
                 <div className="mb-4 flex items-center justify-between">
-                    <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                    <h2 className="text-app flex items-center gap-2 text-lg font-semibold">
                         <Pin className="h-4 w-4" />
                         Pinned Projects
                     </h2>
-                    <span className="text-xs text-slate-500">Top {PINNED_PROJECT_LIMIT}</span>
+                    <span className="text-app-muted text-xs">Top {PINNED_PROJECT_LIMIT}</span>
                 </div>
 
                 {pinnedProjects.length === 0 ? (
                     githubPinnedReposLoading ? (
-                        <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50">
+                        <div className="border-app bg-surface-strong flex h-20 items-center justify-center rounded-xl border border-dashed">
                             <Spinner />
                         </div>
                     ) : githubPinnedRepos.length > 0 ? (
@@ -374,18 +374,18 @@ export default function DiscoverUserDetailPage() {
                                     href={repo.html_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block rounded-xl border border-slate-200 bg-slate-50 p-4 transition-colors hover:border-slate-300 hover:bg-white"
+                                    className="border-app bg-surface-strong hover:border-app-strong hover:bg-surface block rounded-xl border p-4 transition-colors"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="truncate text-base font-semibold text-slate-900">{repo.name}</p>
-                                            <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                                            <p className="text-app truncate text-base font-semibold">{repo.name}</p>
+                                            <p className="text-app-soft mt-1 line-clamp-2 text-sm">
                                                 {repo.description || 'Repository from linked GitHub profile.'}
                                             </p>
                                         </div>
                                         <Badge variant="secondary">GitHub</Badge>
                                     </div>
-                                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                    <div className="text-app-muted mt-3 flex flex-wrap items-center gap-2 text-xs">
                                         {repo.language && <span>{repo.language}</span>}
                                         <span>{repo.stargazers_count} stars</span>
                                         <span>{repo.forks_count} forks</span>
@@ -394,7 +394,7 @@ export default function DiscoverUserDetailPage() {
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                        <div className="border-app bg-surface-strong text-app-muted rounded-xl border border-dashed p-6 text-sm">
                             No pinned projects yet.
                         </div>
                     )
@@ -404,18 +404,18 @@ export default function DiscoverUserDetailPage() {
                             <Link
                                 key={project.id}
                                 href={`/projects/${project.id}`}
-                                className="block rounded-xl border border-slate-200 bg-slate-50 p-4 transition-colors hover:border-slate-300 hover:bg-white"
+                                className="border-app bg-surface-strong hover:border-app-strong hover:bg-surface block rounded-xl border p-4 transition-colors"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                        <p className="truncate text-base font-semibold text-slate-900">{project.title}</p>
-                                        <p className="mt-1 line-clamp-2 text-sm text-slate-600">{project.description}</p>
+                                        <p className="text-app truncate text-base font-semibold">{project.title}</p>
+                                        <p className="text-app-soft mt-1 line-clamp-2 text-sm">{project.description}</p>
                                     </div>
                                     <Badge variant={project.status === 'ACTIVE' ? 'success' : 'secondary'}>
                                         {project.status.replace(/_/g, ' ')}
                                     </Badge>
                                 </div>
-                                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <div className="text-app-muted mt-3 flex flex-wrap items-center gap-2 text-xs">
                                     <span className="inline-flex items-center gap-1">
                                         <Users className="h-3.5 w-3.5" />
                                         {project.teamMemberCount || 0} members
@@ -431,22 +431,22 @@ export default function DiscoverUserDetailPage() {
                 )}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-semibold text-slate-900">Linked Profiles</h2>
+            <section className="surface-elevated rounded-2xl p-6">
+                <h2 className="text-app mb-4 text-lg font-semibold">Linked Profiles</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <div className="border-app bg-surface-strong rounded-xl border p-4">
+                        <div className="text-app mb-2 inline-flex items-center gap-2 text-sm font-semibold">
                             <Github className="h-4 w-4" />
                             GitHub
                         </div>
-                        <p className="text-sm text-slate-600">{profile.githubUsername ? `@${profile.githubUsername}` : 'Not linked'}</p>
+                        <p className="text-app-soft text-sm">{profile.githubUsername ? `@${profile.githubUsername}` : 'Not linked'}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <div className="border-app bg-surface-strong rounded-xl border p-4">
+                        <div className="text-app mb-2 inline-flex items-center gap-2 text-sm font-semibold">
                             <Code2 className="h-4 w-4" />
                             LeetCode
                         </div>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-app-soft text-sm">
                             {effectiveLeetCodeUsername || 'Not linked'}
                         </p>
                     </div>

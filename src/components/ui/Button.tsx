@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 
 export interface ButtonProps
     extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onAnimationStart' | 'onDrag' | 'onDragStart' | 'onDragEnd'> {
@@ -14,11 +13,11 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
         const variants = {
-            primary: 'bg-teal-700 text-white hover:bg-teal-800 shadow-md shadow-teal-900/20',
-            secondary: 'bg-slate-800 text-white hover:bg-slate-900 shadow-md shadow-slate-200',
-            outline: 'border border-app bg-surface text-app-soft hover:bg-surface-strong',
-            ghost: 'text-app-soft hover:bg-slate-100/70 hover:text-app dark:hover:bg-slate-800/60',
-            danger: 'bg-red-600 text-white hover:bg-red-700 shadow-md shadow-red-200',
+            primary: 'bg-[color:var(--brand)] text-white hover:bg-[color:var(--brand-strong)] shadow-md shadow-slate-950/10 dark:shadow-black/30',
+            secondary: 'bg-[color:var(--accent)] text-white hover:opacity-95 shadow-md shadow-slate-950/10 dark:shadow-black/30',
+            outline: 'border border-app bg-surface text-app hover:bg-surface-strong',
+            ghost: 'text-app-soft hover:bg-surface-strong hover:text-app',
+            danger: 'bg-red-600 text-white hover:bg-red-700 shadow-md shadow-red-900/10 dark:shadow-red-950/30',
         };
 
         const sizes = {
@@ -29,11 +28,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         };
 
         return (
-            <motion.button
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
+            <button
                 className={cn(
-                    'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 disabled:pointer-events-none disabled:opacity-50',
+                    'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] disabled:pointer-events-none disabled:opacity-50',
                     variants[variant],
                     sizes[size],
                     className
@@ -49,7 +46,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     </svg>
                 )}
                 {children}
-            </motion.button>
+            </button>
         );
     }
 );

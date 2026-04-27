@@ -20,19 +20,6 @@ export function EventCard({ event }: EventCardProps) {
     const [interestCount, setInterestCount] = useState(event.interestedCount);
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSpotlightMove = (event: React.MouseEvent<HTMLElement>) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        event.currentTarget.style.setProperty('--spotlight-x', `${x}px`);
-        event.currentTarget.style.setProperty('--spotlight-y', `${y}px`);
-    };
-
-    const resetSpotlight = (event: React.MouseEvent<HTMLElement>) => {
-        event.currentTarget.style.setProperty('--spotlight-x', '50%');
-        event.currentTarget.style.setProperty('--spotlight-y', '50%');
-    };
-
     useEffect(() => {
         setIsInterested(event.isInterested);
         setInterestCount(event.interestedCount);
@@ -66,9 +53,7 @@ export function EventCard({ event }: EventCardProps) {
             transition={{ duration: 0.3 }}
         >
             <Card
-                className="spotlight-card flex h-full flex-col overflow-hidden border border-white/70 bg-white/60 backdrop-blur-lg shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-xl"
-                onMouseMove={handleSpotlightMove}
-                onMouseLeave={resetSpotlight}
+                className="surface-elevated flex h-full flex-col overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-soft"
             >
                 <div className="h-1.5 w-full bg-gradient-to-r from-teal-500 via-cyan-500 to-indigo-500" />
 
@@ -77,7 +62,7 @@ export function EventCard({ event }: EventCardProps) {
                         <Badge variant={event.type === 'HACKATHON' ? 'success' : 'secondary'}>
                             {event.type}
                         </Badge>
-                        <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                        <span className="text-app-muted flex items-center gap-1 text-xs font-medium">
                             <Calendar className="h-3 w-3" />
                             {formatDate(event.date)}
                         </span>
@@ -89,13 +74,13 @@ export function EventCard({ event }: EventCardProps) {
                 </CardHeader>
 
                 <CardContent className="p-5 py-2 space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Users className="h-4 w-4 shrink-0 text-slate-400" />
+                    <div className="text-app-soft flex items-center gap-2 text-sm">
+                        <Users className="text-app-muted h-4 w-4 shrink-0" />
                         <span>{interestCount} students interested</span>
                     </div>
                 </CardContent>
 
-                <CardFooter className="p-5 pt-4 mt-auto border-t border-slate-50 flex gap-3">
+                <CardFooter className="border-app mt-auto flex gap-3 border-t p-5 pt-4">
                     <Button
                         variant={isInterested ? "secondary" : "outline"}
                         className="flex-1 gap-2"

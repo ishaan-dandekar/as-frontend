@@ -3,36 +3,18 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/api/auth';
-import { userApi } from '@/api/user';
-import { User } from '@/types';
 import { useQueryClient } from '@tanstack/react-query';
+import type { User } from '@/types';
 
 export function useAuth() {
-    const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [hasToken, setHasToken] = useState(false);
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const fetchProfile = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const response = await userApi.getProfile();
-            setUser(response.data);
-            queryClient.setQueryData(['profile'], response.data);
-        } catch {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [queryClient]);
-
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token && !user) {
-            fetchProfile();
-        }
-    }, [fetchProfile, user]);
+        setHasToken(!!localStorage.getItem('token'));
+    }, []);
 
     const googleLogin = useCallback(async () => {
         setIsLoading(true);
@@ -178,7 +160,7 @@ export function useAuth() {
             localStorage.setItem('token', result.token);
             localStorage.setItem('refreshToken', result.refreshToken);
             localStorage.setItem('userRole', result.user.role);
-            setUser(result.user);
+            setHasToken(true);
             queryClient.setQueryData(['profile'], result.user);
             router.push('/dashboard');
         } catch (error) {
@@ -194,16 +176,16 @@ export function useAuth() {
     const logout = useCallback(() => {
         if (!window.confirm('Are you sure you want to log out?')) return;
         authApi.logout();
-        setUser(null);
+        setHasToken(false);
         queryClient.removeQueries({ queryKey: ['profile'] });
         router.push('/');
     }, [router, queryClient]);
 
     return {
-        user,
+        user: null as User | null,
         isLoading,
         googleLogin,
         logout,
-        isAuthenticated: !!user || (typeof window !== 'undefined' && !!localStorage.getItem('token')),
+        isAuthenticated: hasToken,
     };
 }

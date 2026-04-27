@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -21,27 +20,23 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return (
             <div className="w-full space-y-1.5">
                 {label && (
-                    <motion.label
-                        initial={{ opacity: 0, x: -5 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="text-sm font-medium text-slate-700"
-                    >
+                    <label className="text-app text-sm font-medium">
                         {label}
-                    </motion.label>
+                    </label>
                 )}
                 <div className="relative">
                     {icon && (
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <div className="text-app-muted absolute left-3 top-1/2 -translate-y-1/2">
                             {icon}
                         </div>
                     )}
                     <input
                         type={inputType}
                         className={cn(
-                            "flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50",
-                            error && "border-red-500 focus-visible:ring-red-500",
-                            icon && "pl-10",
-                            isPassword && "pr-10",
+                            'border-app bg-surface text-app placeholder:text-[color:var(--foreground-muted)] ring-offset-[color:var(--surface)] flex h-11 w-full rounded-xl border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand)] disabled:cursor-not-allowed disabled:opacity-50',
+                            error && 'border-red-500 focus-visible:ring-red-500',
+                            icon && 'pl-10',
+                            isPassword && 'pr-10',
                             className
                         )}
                         ref={ref}
@@ -52,7 +47,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                             type="button"
                             tabIndex={-1}
                             onClick={() => setShowPassword((prev) => !prev)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="text-app-muted hover:text-app absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
                             aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
                             {showPassword ? (
@@ -67,7 +62,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     <p className="text-xs text-red-500">{error}</p>
                 )}
                 {helperText && !error && (
-                    <p className="text-xs text-slate-500">{helperText}</p>
+                    <p className="text-app-muted text-xs">{helperText}</p>
                 )}
             </div>
         );

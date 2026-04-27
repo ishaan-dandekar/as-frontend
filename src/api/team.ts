@@ -56,20 +56,21 @@ export type TeamIncomingJoinRequestItem = {
 };
 
 function mapTeam(team: BackendTeam): Team {
+    const ownerId = team.owner_id ? String(team.owner_id) : undefined;
     const members = Array.isArray(team.members)
         ? team.members.map((member) => ({
             userId: String(member.id),
             moodleId: member.moodle_id || member.username || String(member.id),
             name: member.name || member.username || 'Unknown',
             avatarUrl: member.profile_picture_url,
-            role: member.role || 'MEMBER',
+            role: member.role || (ownerId && String(member.id) === ownerId ? 'OWNER' : 'MEMBER'),
             email: member.email || '',
         }))
         : [];
 
     return {
         id: String(team.id),
-        ownerId: team.owner_id ? String(team.owner_id) : undefined,
+        ownerId,
         projectId: team.project,
         name: team.name,
         description: team.description,
