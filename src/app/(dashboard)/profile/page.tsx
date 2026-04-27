@@ -297,10 +297,12 @@ export default function ProfilePage() {
         }
     };
 
+    const profileFollowersCount = Number(profile?.followersCount ?? 0);
+    const profileFollowingCount = Number(profile?.followingCount ?? 0);
     const overviewFollowers = liveGithubStats?.user?.followers
-        ?? (profile?.followersCount > 0 ? Number(profile.followersCount) : null);
+        ?? (profileFollowersCount > 0 ? profileFollowersCount : null);
     const overviewFollowing = liveGithubStats?.user?.following
-        ?? (profile?.followingCount > 0 ? Number(profile.followingCount) : null);
+        ?? (profileFollowingCount > 0 ? profileFollowingCount : null);
     const overviewProjects = totalProjectsCount;
     const shouldDeferEmptySkills = Boolean(
         profile &&
