@@ -206,6 +206,40 @@ body {
     box-shadow: 0 24px 42px -32px rgba(2, 8, 18, 0.9);
   }
 
+  .brand-wordmark {
+    font-family: var(--font-brand), "Times New Roman", serif;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 0.92;
+  }
+
+  .brand-highlight {
+    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 55%, #0f766e 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  [data-theme='dark'] .brand-highlight {
+    background: linear-gradient(135deg, #7dd3c7 0%, #5eead4 55%, #99f6e4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .eyebrow-badge {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.18), rgba(45, 212, 191, 0.28));
+    border: 1px solid rgba(20, 184, 166, 0.28);
+    color: #0f766e;
+    box-shadow: 0 10px 20px -16px rgba(20, 184, 166, 0.7);
+  }
+
+  [data-theme='dark'] .eyebrow-badge {
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(45, 212, 191, 0.12));
+    border: 1px solid rgba(94, 234, 212, 0.24);
+    color: #99f6e4;
+  }
+
   .spotlight-card {
     position: relative;
     overflow: hidden;

@@ -307,7 +307,7 @@ export default function DashboardPage() {
             >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-2xl">
-                        <span className="mb-3 inline-flex rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-700 dark:text-teal-200">
+                        <span className="eyebrow-badge mb-3 inline-flex rounded-full px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.28em]">
                             Student workspace
                         </span>
                         <h1 className="font-display text-app text-3xl font-bold tracking-tight sm:text-4xl">

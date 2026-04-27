@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import AppShell from "@/components/layout/AppShell";
@@ -15,6 +16,13 @@ const appDisplay = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-display",
   display: "swap",
+});
+
+const brandDisplay = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-brand",
+  display: "swap",
+  weight: ["700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +50,8 @@ export default function RootLayout({
         className={cn(
           "bg-app text-app antialiased transition-colors duration-300",
           appSans.variable,
-          appDisplay.variable
+          appDisplay.variable,
+          brandDisplay.variable
         )}
       >
         <Providers>
