@@ -9,7 +9,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { GitHubStats } from '@/components/profile/GitHubStats';
 import { LeetCodeStats } from '@/components/profile/LeetCodeStats';
 import { Project } from '@/types';
-import { githubApi, GitHubRepo } from '@/api/github';
+import { githubApi, GitHubRepo, GitHubStats as GitHubStatsType } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
 import { projectApi } from '@/api/project';
 import { ExternalLink, GitFork, Plus, RefreshCw, Star, X } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function ProfilePage() {
     const [isRefreshingRepoOptions, setIsRefreshingRepoOptions] = useState(false);
     const [isPinnedStateHydrated, setIsPinnedStateHydrated] = useState(false);
     const [activatingProjectId, setActivatingProjectId] = useState<string | null>(null);
+    const [liveGithubStats, setLiveGithubStats] = useState<GitHubStatsType | null>(null);
     
     // Computed values: null means explicitly disconnected, undefined means use profile default
     const effectiveGithubUsername = githubUsername === null ? undefined : (githubUsername ?? profile?.githubUsername);
@@ -108,6 +109,31 @@ export default function ProfilePage() {
         setLeetCodeUsername((prev) => prev ?? normalized);
         leetcodeApi.setStoredUsername(normalized);
     }, [profile?.leetCodeUrl]);
+
+    useEffect(() => {
+        if (!effectiveGithubUsername) {
+            setLiveGithubStats(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        githubApi.getStats(effectiveGithubUsername)
+            .then((stats) => {
+                if (!cancelled) {
+                    setLiveGithubStats(stats);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setLiveGithubStats(null);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [effectiveGithubUsername]);
 
     useEffect(() => {
         if (visibleProjects.length > 0 || !effectiveGithubUsername) {
@@ -230,6 +256,10 @@ export default function ProfilePage() {
         }
     };
 
+    const overviewFollowers = Number(liveGithubStats?.user?.followers ?? profile?.followersCount ?? 0);
+    const overviewFollowing = Number(liveGithubStats?.user?.following ?? profile?.followingCount ?? 0);
+    const overviewProjects = showcaseTotal > 0 ? showcaseTotal : Number(profile?.projectsCount ?? 0);
+
     if (userLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -254,9 +284,9 @@ export default function ProfilePage() {
             <div className="grid gap-6 lg:grid-cols-3">
                 <aside className="space-y-6 lg:col-span-1">
                     <ProfileStats
-                        followers={profile.followersCount}
-                        following={profile.followingCount}
-                        projects={profile.projectsCount}
+                        followers={overviewFollowers}
+                        following={overviewFollowing}
+                        projects={overviewProjects}
                     />
 
                     <GitHubStats username={effectiveGithubUsername} />

@@ -14,6 +14,44 @@ function normalizeGithubRepoUrl(url?: string): string {
     return (url || '').trim().replace(/\/+$/, '').toLowerCase();
 }
 
+function normalizeRepoIdentifier(value?: string): string {
+    return (value || '').trim().toLowerCase();
+}
+
+function getProjectLookupKeys(project: Project): string[] {
+    const keys: string[] = [];
+    const githubKey = normalizeGithubRepoUrl(project.githubUrl);
+    const titleKey = normalizeRepoIdentifier(project.title);
+
+    if (githubKey) {
+        keys.push(`url:${githubKey}`);
+    }
+    if (titleKey) {
+        keys.push(`name:${titleKey}`);
+    }
+
+    return keys;
+}
+
+function getRepoLookupKeys(repo: GitHubRepo): string[] {
+    const keys: string[] = [];
+    const githubKey = normalizeGithubRepoUrl(repo.html_url);
+    const repoNameKey = normalizeRepoIdentifier(repo.name);
+    const fullNameKey = normalizeRepoIdentifier(repo.full_name);
+
+    if (githubKey) {
+        keys.push(`url:${githubKey}`);
+    }
+    if (repoNameKey) {
+        keys.push(`name:${repoNameKey}`);
+    }
+    if (fullNameKey) {
+        keys.push(`name:${fullNameKey}`);
+    }
+
+    return keys;
+}
+
 export default function MyProjectsPage() {
     const { profile } = useUser();
     const oauthSession = githubApi.getStoredOAuthSession();
@@ -25,6 +63,7 @@ export default function MyProjectsPage() {
     const [githubRepos, setGithubRepos] = useState<GitHubRepo[]>([]);
     const [myProjects, setMyProjects] = useState<Project[]>([]);
     const [updatingRepoId, setUpdatingRepoId] = useState<number | null>(null);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     const loadMyProjects = useCallback(async () => {
         try {
@@ -72,20 +111,20 @@ export default function MyProjectsPage() {
         void loadPageData();
     }, [loadPageData]);
 
-    const projectByGithubUrl = useMemo(() => {
+    const projectByRepoKey = useMemo(() => {
         const map = new Map<string, Project>();
         for (const project of myProjects) {
-            const key = normalizeGithubRepoUrl(project.githubUrl);
-            if (!key) continue;
+            const keys = getProjectLookupKeys(project);
+            for (const key of keys) {
+                const current = map.get(key);
+                if (!current) {
+                    map.set(key, project);
+                    continue;
+                }
 
-            const current = map.get(key);
-            if (!current) {
-                map.set(key, project);
-                continue;
-            }
-
-            if (current.status !== 'ACTIVE' && project.status === 'ACTIVE') {
-                map.set(key, project);
+                if (current.status !== 'ACTIVE' && project.status === 'ACTIVE') {
+                    map.set(key, project);
+                }
             }
         }
         return map;
@@ -93,11 +132,12 @@ export default function MyProjectsPage() {
 
     const getRepoActiveState = useCallback(
         (repo: GitHubRepo) => {
-            const key = normalizeGithubRepoUrl(repo.html_url);
-            const linkedProject = projectByGithubUrl.get(key);
+            const linkedProject = getRepoLookupKeys(repo)
+                .map((key) => projectByRepoKey.get(key))
+                .find(Boolean);
             return linkedProject?.status === 'ACTIVE';
         },
-        [projectByGithubUrl]
+        [projectByRepoKey]
     );
 
     const activeCount = useMemo(
@@ -106,8 +146,10 @@ export default function MyProjectsPage() {
     );
 
     const handleToggleRepoActive = async (repo: GitHubRepo) => {
-        const repoKey = normalizeGithubRepoUrl(repo.html_url);
-        const linkedProject = projectByGithubUrl.get(repoKey);
+        setFeedback(null);
+        const linkedProject = getRepoLookupKeys(repo)
+            .map((key) => projectByRepoKey.get(key))
+            .find(Boolean);
         const currentlyActive = linkedProject?.status === 'ACTIVE';
 
         try {
@@ -116,6 +158,7 @@ export default function MyProjectsPage() {
             if (linkedProject) {
                 await projectApi.updateProject(linkedProject.id, {
                     status: currentlyActive ? 'IN_PROGRESS' : 'ACTIVE',
+                    githubUrl: linkedProject.githubUrl || repo.html_url,
                 });
             } else {
                 await projectApi.createProject({
@@ -129,8 +172,19 @@ export default function MyProjectsPage() {
             }
 
             await loadPageData(true);
-        } catch {
-            // Keep UX minimal; failed sync/toggle actions are ignored for now.
+            setFeedback({
+                type: 'success',
+                message: currentlyActive
+                    ? `${repo.name} was marked as not active.`
+                    : `${repo.name} is now active in your profile.`,
+            });
+        } catch (err: unknown) {
+            const apiError = err as { response?: { data?: { message?: string | Record<string, string[]> } } };
+            const message = apiError.response?.data?.message;
+            setFeedback({
+                type: 'error',
+                message: typeof message === 'string' ? message : `Could not update ${repo.name}. Please try again.`,
+            });
         } finally {
             setUpdatingRepoId(null);
         }
@@ -166,6 +220,17 @@ export default function MyProjectsPage() {
                         </button>
                     </div>
                 </div>
+                {feedback ? (
+                    <div
+                        className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+                            feedback.type === 'success'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-red-200 bg-red-50 text-red-700'
+                        }`}
+                    >
+                        {feedback.message}
+                    </div>
+                ) : null}
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

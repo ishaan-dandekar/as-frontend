@@ -3,6 +3,8 @@ import { setAvatarSyncVersionNow, withAvatarSyncVersion } from '@/lib/avatarUrl'
 
 type BackendUser = {
     id: string;
+    moodle_id?: string;
+    unique_id?: string;
     name?: string;
     username?: string;
     email: string;
@@ -14,6 +16,7 @@ type BackendUser = {
     leetcode_username?: string;
     role?: 'STUDENT' | 'DEPARTMENT';
     skills?: string[];
+    skill_tags?: string[];
     followersCount?: number;
     followingCount?: number;
     projectsCount?: number;
@@ -63,15 +66,18 @@ function resolveRole(user: BackendUser, hintRole?: string): 'STUDENT' | 'DEPARTM
 
 function mapUser(user: BackendUser, hintRole?: string) {
     const normalizedRole = resolveRole(user, hintRole);
+    const moodleId = (user.moodle_id || user.unique_id || user.id || user.username || '').trim() || undefined;
 
     return {
         id: user.id,
+        moodleId,
         name: normalizeDisplayName(user),
         email: user.email,
         role: normalizedRole,
         avatarUrl: withAvatarSyncVersion(user.profile_picture_url),
         bio: user.bio || '',
         skills: user.skills || [],
+        skillTags: user.skill_tags || user.skills || [],
         githubUsername: user.github_username,
         leetCodeUrl: user.leetcode_username,
         followersCount: user.followersCount || 0,

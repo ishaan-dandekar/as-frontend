@@ -6,9 +6,12 @@ export interface User {
     name: string;
     email: string;
     role: UserRole;
+    branch?: string;
+    year?: string;
     avatarUrl?: string;
     bio?: string;
     skills: string[];
+    skillTags?: string[];
     githubUrl?: string;
     leetCodeUrl?: string;
     followersCount: number;

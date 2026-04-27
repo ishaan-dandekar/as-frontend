@@ -93,6 +93,7 @@ export function Navbar() {
                             email={profile?.email}
                             avatarUrl={profile?.avatarUrl}
                             onLogout={logout}
+                            profileHref="/profile"
                         />
                     ) : (
                         <>

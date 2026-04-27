@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Plus } from 'lucide-react';
+import { Search, Users, Plus } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -28,6 +28,7 @@ export default function TeamsPage() {
     const [joinFeedback, setJoinFeedback] = useState<string | null>(null);
     const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
+    const [teamSearch, setTeamSearch] = useState('');
 
     useEffect(() => {
         if (profileLoading || profile) return;
@@ -74,9 +75,26 @@ export default function TeamsPage() {
         },
     });
 
-    const teams = (teamsRes?.data || []) as Team[];
-    const discoverTeams = (discoverRes?.data || []) as Team[];
+    const teams = useMemo(() => (teamsRes?.data || []) as Team[], [teamsRes?.data]);
+    const discoverTeams = useMemo(() => (discoverRes?.data || []) as Team[], [discoverRes?.data]);
     const incomingRequests = incomingRequestsRes?.data?.items || [];
+    const normalizedTeamSearch = teamSearch.trim().toLowerCase();
+    const filteredDiscoverTeams = useMemo(() => {
+        if (!normalizedTeamSearch) return discoverTeams;
+
+        return discoverTeams.filter((team) => {
+            const keywordHaystack = [
+                team.name,
+                team.description,
+                ...(team.searchKeywords || []),
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            return keywordHaystack.includes(normalizedTeamSearch);
+        });
+    }, [discoverTeams, normalizedTeamSearch]);
 
     const respondRequestMutation = useMutation({
         mutationFn: ({ requestId, action }: { requestId: string; action: 'APPROVE' | 'REJECT' }) =>
@@ -272,7 +290,6 @@ export default function TeamsPage() {
                                         id: request.id,
                                         projectId: request.teamId,
                                         userId: request.userId,
-                                        moodleId: request.userMoodleId || request.userId,
                                         message: request.message || 'Would like to join your team.',
                                         role: 'MEMBER',
                                         status: request.status,
@@ -302,6 +319,15 @@ export default function TeamsPage() {
 
             <section className="space-y-4">
                 <h2 className="text-xl font-semibold text-slate-900">Discover Teams</h2>
+                <div className="max-w-xl">
+                    <Input
+                        placeholder="Search teams by description keywords..."
+                        value={teamSearch}
+                        onChange={(event) => setTeamSearch(event.target.value)}
+                        icon={<Search className="h-4 w-4" />}
+                        helperText="Team descriptions are turned into searchable keywords behind the scenes."
+                    />
+                </div>
                 {joinFeedback ? (
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
                         {joinFeedback}
@@ -311,13 +337,13 @@ export default function TeamsPage() {
                     <div className="flex h-32 items-center justify-center">
                         <Spinner size="lg" />
                     </div>
-                ) : discoverTeams.length === 0 ? (
+                ) : filteredDiscoverTeams.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-                        No available teams to join right now.
+                        No teams match those description keywords right now.
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        {discoverTeams.map((team) => (
+                        {filteredDiscoverTeams.map((team) => (
                             <div key={team.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <h3 className="truncate text-lg font-semibold text-slate-900">{team.name || 'Untitled Team'}</h3>
@@ -328,6 +354,15 @@ export default function TeamsPage() {
                                 <p className="line-clamp-2 text-sm text-slate-600 mb-4">
                                     {team.description || 'No description available.'}
                                 </p>
+                                {(team.searchKeywords || []).length > 0 && (
+                                    <div className="mb-4 flex flex-wrap gap-2">
+                                        {team.searchKeywords?.slice(0, 4).map((keyword) => (
+                                            <Badge key={keyword} variant="outline" className="font-normal">
+                                                {keyword}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                )}
                                 <Button
                                     className="w-full"
                                     variant="outline"

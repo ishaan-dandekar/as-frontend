@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { KeyboardEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -11,7 +11,28 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ProfileIntegrations } from '@/components/profile/ProfileIntegrations';
 import { githubApi } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
-import { PencilLine } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
+import { Badge } from '@/components/ui/Badge';
+import { PencilLine, Plus, Sparkles, X } from 'lucide-react';
+import { POPULAR_SKILL_TAGS, normalizeSkillTag, normalizeSkillTags, parseSkillInput } from '@/lib/skills';
+
+const BRANCH_OPTIONS = [
+    { label: 'Select branch', value: '' },
+    { label: 'CE', value: 'CE' },
+    { label: 'IT', value: 'IT' },
+    { label: 'AI-ML', value: 'AI-ML' },
+    { label: 'DS', value: 'DS' },
+    { label: 'Civil', value: 'Civil' },
+    { label: 'Mechanical', value: 'Mechanical' },
+];
+
+const YEAR_OPTIONS = [
+    { label: 'Select year', value: '' },
+    { label: 'FE', value: 'FE' },
+    { label: 'SE', value: 'SE' },
+    { label: 'TE', value: 'TE' },
+    { label: 'BE', value: 'BE' },
+];
 
 export default function SettingsPage() {
     const { profile, isLoading, updateProfile, isUpdating } = useUser();
@@ -19,9 +40,13 @@ export default function SettingsPage() {
     const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
 
     const [bio, setBio] = useState('');
+    const [branch, setBranch] = useState('');
+    const [year, setYear] = useState('');
     const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
     const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(storedLeetCodeUsername || undefined);
-    const [skillsText, setSkillsText] = useState('');
+    const [skills, setSkills] = useState<string[]>([]);
+    const [skillInput, setSkillInput] = useState('');
+    const [skillSearch, setSkillSearch] = useState('');
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +56,9 @@ export default function SettingsPage() {
     useEffect(() => {
         if (!profile) return;
         setBio(profile.bio || '');
-        setSkillsText((profile.skills || []).join(', '));
+        setBranch(profile.branch || '');
+        setYear(profile.year || '');
+        setSkills(normalizeSkillTags(profile.skills || []));
     }, [profile]);
 
     useEffect(() => {
@@ -102,13 +129,10 @@ export default function SettingsPage() {
         setError(null);
 
         try {
-            const skills = skillsText
-                .split(',')
-                .map((skill) => skill.trim())
-                .filter(Boolean);
-
             await updateProfile({
                 bio,
+                branch,
+                year,
                 skills,
             });
 
@@ -119,6 +143,41 @@ export default function SettingsPage() {
             setError(typeof message === 'string' ? message : 'Failed to update profile. Please try again.');
         }
     };
+
+    const addSkill = useCallback((value: string) => {
+        const normalized = normalizeSkillTag(value);
+        if (!normalized) return;
+
+        setSkills((prev) => normalizeSkillTags([...prev, normalized]));
+        setSkillInput('');
+    }, []);
+
+    const addSkillsFromInput = useCallback(() => {
+        const parsed = parseSkillInput(skillInput);
+        if (parsed.length === 0) return;
+
+        setSkills((prev) => normalizeSkillTags([...prev, ...parsed]));
+        setSkillInput('');
+    }, [skillInput]);
+
+    const removeSkill = useCallback((skillToRemove: string) => {
+        setSkills((prev) => prev.filter((skill) => skill.toLowerCase() !== skillToRemove.toLowerCase()));
+    }, []);
+
+    const handleSkillInputKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter' || event.key === ',') {
+            event.preventDefault();
+            addSkillsFromInput();
+        }
+    }, [addSkillsFromInput]);
+
+    const filteredPopularSkills = useMemo(() => {
+        const query = skillSearch.trim().toLowerCase();
+        return POPULAR_SKILL_TAGS.filter((skill) => {
+            if (skills.includes(skill)) return false;
+            return !query || skill.toLowerCase().includes(query);
+        });
+    }, [skillSearch, skills]);
 
     const handleGithubConnect = useCallback((username: string) => {
         const next = (username || '').trim();
@@ -169,7 +228,7 @@ export default function SettingsPage() {
                 </div>
             ) : (
                 <div className="space-y-6">
-                    <Card>
+                    <Card id="integrations">
                         <CardHeader className="border-b border-slate-100 bg-slate-50/70">
                             <CardTitle className="flex items-center gap-2 text-xl">
                                 <PencilLine className="h-5 w-5 text-indigo-600" />
@@ -224,12 +283,101 @@ export default function SettingsPage() {
                                 />
                             </div>
 
-                            <Input
-                                label="Skills"
-                                value={skillsText}
-                                onChange={(e) => setSkillsText(e.target.value)}
-                                placeholder="React, Python, Django"
-                            />
+                            <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700">Skills</label>
+                                    <p className="text-xs text-slate-500">
+                                        Add your own skills manually or pick from the popular tech tags below.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row">
+                                        <Input
+                                            value={skillInput}
+                                            onChange={(e) => setSkillInput(e.target.value)}
+                                            onKeyDown={handleSkillInputKeyDown}
+                                            placeholder="Type a skill and press Enter or comma"
+                                        />
+                                        <Button type="button" variant="outline" onClick={addSkillsFromInput} className="sm:self-end">
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Skill
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex min-h-14 flex-wrap gap-2 rounded-lg border border-dashed border-slate-300 bg-white p-3">
+                                        {skills.length > 0 ? skills.map((skill) => (
+                                            <button
+                                                key={skill}
+                                                type="button"
+                                                onClick={() => removeSkill(skill)}
+                                                className="inline-flex"
+                                                aria-label={`Remove ${skill}`}
+                                            >
+                                                <Badge variant="default" className="gap-1 rounded-full bg-teal-100 text-teal-800 hover:bg-teal-200">
+                                                    {skill}
+                                                    <X className="h-3 w-3" />
+                                                </Badge>
+                                            </button>
+                                        )) : (
+                                            <p className="text-sm text-slate-500">No skills added yet.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                    <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                        <div>
+                                            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                                <Sparkles className="h-4 w-4 text-amber-500" />
+                                                Popular Tech Skills
+                                            </p>
+                                            <p className="text-xs text-slate-500">Click any tag to add it to your profile.</p>
+                                        </div>
+                                        <div className="w-full md:w-72">
+                                            <Input
+                                                value={skillSearch}
+                                                onChange={(e) => setSkillSearch(e.target.value)}
+                                                placeholder="Search skill tags"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex max-h-72 flex-wrap gap-2 overflow-y-auto pr-1">
+                                        {filteredPopularSkills.map((skill) => (
+                                            <button key={skill} type="button" onClick={() => addSkill(skill)}>
+                                                <Badge variant="outline" className="cursor-pointer hover:border-teal-300 hover:text-teal-700">
+                                                    {skill}
+                                                </Badge>
+                                            </button>
+                                        ))}
+                                        {filteredPopularSkills.length === 0 && (
+                                            <p className="text-sm text-slate-500">All matching tags are already added.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {profile?.role === 'STUDENT' ? (
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-slate-700">Branch</label>
+                                        <Select
+                                            value={branch}
+                                            onChange={(e) => setBranch(e.target.value)}
+                                            options={BRANCH_OPTIONS}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-slate-700">Year</label>
+                                        <Select
+                                            value={year}
+                                            onChange={(e) => setYear(e.target.value)}
+                                            options={YEAR_OPTIONS}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
 
                             <div className="flex justify-end">
                                 <Button onClick={onSave} isLoading={isUpdating}>Save Changes</Button>

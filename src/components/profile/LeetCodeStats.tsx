@@ -3,6 +3,7 @@
 import { Code2, Trophy, Zap, TrendingUp, Target, Flame, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { leetcodeApi, LeetCodeFullStats } from '@/api/leetcode';
 
 interface LeetCodeStatsProps {
@@ -10,6 +11,7 @@ interface LeetCodeStatsProps {
 }
 
 export function LeetCodeStats({ username }: LeetCodeStatsProps) {
+    const router = useRouter();
     const [stats, setStats] = useState<LeetCodeFullStats | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,11 @@ export function LeetCodeStats({ username }: LeetCodeStatsProps) {
                             <Code2 className="h-6 w-6 text-amber-600" />
                         </div>
                         <p className="text-sm text-slate-600 mb-3 font-medium">Link LeetCode to display your coding rank</p>
-                        <button className="group/btn relative inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
+                        <button
+                            type="button"
+                            onClick={() => router.push('/settings#integrations')}
+                            className="group/btn relative inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                        >
                             <span>Connect Profile</span>
                             <ExternalLink className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform" />
                         </button>

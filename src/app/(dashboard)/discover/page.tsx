@@ -5,14 +5,19 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Spinner } from '@/components/ui/Spinner';
 import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { githubApi } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
 import { projectApi } from '@/api/project';
 import { userApi } from '@/api/user';
 import { useUser } from '@/hooks/useUser';
+import { useDebounce } from '@/hooks/utils';
 import { User } from '@/types';
-import { Search, Users } from 'lucide-react';
+import { Filter, Search, Users } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
+import { formatAcademicProfile } from '@/lib/profileDisplay';
+import { POPULAR_SKILL_TAGS, normalizeSkillTags } from '@/lib/skills';
 
 type DiscoverProfile = {
     user: User;
@@ -45,13 +50,19 @@ function isStudentProfile(user: User): boolean {
 export default function DiscoverPage() {
     const { profile } = useUser();
     const [isLoading, setIsLoading] = useState(true);
+    const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
+    const [liveSearchProfiles, setLiveSearchProfiles] = useState<DiscoverProfile[] | null>(null);
     const [searchPeople, setSearchPeople] = useState('');
+    const [skillSearch, setSkillSearch] = useState('');
+    const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+    const [showSkillFilters, setShowSkillFilters] = useState(false);
     const [githubStatsMap, setGithubStatsMap] = useState<Record<string, BriefGitHubStats | null>>({});
     const [leetCodeStatsMap, setLeetCodeStatsMap] = useState<Record<string, BriefLeetCodeStats | null>>({});
 
     const currentUserId = profile?.id;
+    const debouncedSearchPeople = useDebounce(searchPeople, 300);
 
     useEffect(() => {
         let cancelled = false;
@@ -189,26 +200,117 @@ export default function DiscoverPage() {
         () => [...profiles].sort((a, b) => b.projectCount - a.projectCount || b.latestActivityTs - a.latestActivityTs),
         [profiles]
     );
-    const filteredProfiles = useMemo(() => {
-        const query = searchPeople.trim().toLowerCase();
-        if (!query) return sortedProfiles;
+    const statsByUserId = useMemo(() => {
+        const map = new Map<string, OwnerProjectStats>();
+        profiles.forEach((item) => {
+            map.set(item.user.id, {
+                projectCount: item.projectCount,
+                topTeamSize: item.topTeamSize,
+                latestActivityTs: item.latestActivityTs,
+            });
+        });
+        return map;
+    }, [profiles]);
+    const sourceProfiles = useMemo(
+        () => liveSearchProfiles ?? sortedProfiles,
+        [liveSearchProfiles, sortedProfiles]
+    );
+    const availableSkills = useMemo(() => {
+        const values = new Set<string>(POPULAR_SKILL_TAGS);
+        sourceProfiles.forEach((item) => {
+            normalizeSkillTags(item.user.skillTags || item.user.skills || []).forEach((skill) => values.add(skill));
+        });
+        return Array.from(values).sort((a, b) => a.localeCompare(b));
+    }, [sourceProfiles]);
+    const filteredAvailableSkills = useMemo(() => {
+        const query = skillSearch.trim().toLowerCase();
+        const sorted = [...availableSkills].sort((a, b) => {
+            const aSelected = selectedSkills.includes(a) ? 1 : 0;
+            const bSelected = selectedSkills.includes(b) ? 1 : 0;
+            if (aSelected !== bSelected) return bSelected - aSelected;
+            return a.localeCompare(b);
+        });
 
-        return sortedProfiles.filter((item) => {
+        return sorted.filter((skill) => !query || skill.toLowerCase().includes(query));
+    }, [availableSkills, selectedSkills, skillSearch]);
+    const filteredProfiles = useMemo(() => {
+        const query = debouncedSearchPeople.trim().toLowerCase();
+        const hasSkillFilters = selectedSkills.length > 0;
+
+        return sourceProfiles.filter((item) => {
             const githubUsername = (item.user.githubUsername || '').toLowerCase();
             const leetCodeUsername = leetcodeApi.normalizeUsername(item.user.leetCodeUrl || '').toLowerCase();
+            const skillTags = (item.user.skillTags || item.user.skills || []).map((skill) => skill.toLowerCase());
             const haystack = [
                 item.user.name,
+                item.user.moodleId,
                 item.user.email,
+                item.user.branch,
+                item.user.year,
                 githubUsername,
                 leetCodeUsername,
+                ...skillTags,
             ]
                 .filter(Boolean)
                 .join(' ')
                 .toLowerCase();
 
-            return haystack.includes(query);
+            const matchesQuery = !query || haystack.includes(query);
+            const matchesSkills = !hasSkillFilters || selectedSkills.every((skill) => skillTags.includes(skill.toLowerCase()));
+
+            return matchesQuery && matchesSkills;
         });
-    }, [searchPeople, sortedProfiles]);
+    }, [debouncedSearchPeople, selectedSkills, sourceProfiles]);
+
+    useEffect(() => {
+        const hasRemoteFilters = debouncedSearchPeople.trim().length > 0 || selectedSkills.length > 0;
+        if (!hasRemoteFilters) {
+            setLiveSearchProfiles(null);
+            setIsSearching(false);
+            return;
+        }
+
+        let cancelled = false;
+        setIsSearching(true);
+
+        userApi.searchUsers(debouncedSearchPeople, 100, selectedSkills)
+            .then((response) => {
+                if (cancelled) return;
+
+                const remoteProfiles = (Array.isArray(response.data) ? response.data : [])
+                    .filter((user) => isStudentProfile(user))
+                    .map((user) => {
+                        const fallbackStats = statsByUserId.get(user.id) || {
+                            projectCount: Number(user.projectsCount || 0),
+                            topTeamSize: 0,
+                            latestActivityTs: 0,
+                        };
+
+                        return {
+                            user,
+                            projectCount: fallbackStats.projectCount,
+                            topTeamSize: fallbackStats.topTeamSize,
+                            latestActivityTs: fallbackStats.latestActivityTs,
+                        } satisfies DiscoverProfile;
+                    })
+                    .sort((a, b) => b.projectCount - a.projectCount || b.latestActivityTs - a.latestActivityTs);
+
+                setLiveSearchProfiles(remoteProfiles);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setLiveSearchProfiles([]);
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setIsSearching(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [debouncedSearchPeople, selectedSkills, statsByUserId]);
 
     useEffect(() => {
         const githubUsernames = filteredProfiles
@@ -296,6 +398,14 @@ export default function DiscoverPage() {
         };
     }, [filteredProfiles, leetCodeStatsMap]);
 
+    const toggleSkill = (skill: string) => {
+        setSelectedSkills((prev) =>
+            prev.includes(skill)
+                ? prev.filter((item) => item !== skill)
+                : [...prev, skill]
+        );
+    };
+
     return (
         <div className="space-y-6">
             <Breadcrumbs items={[{ label: 'Discover' }]} />
@@ -307,14 +417,65 @@ export default function DiscoverPage() {
                 </p>
             </div>
 
-            <div className="max-w-md">
-                <Input
-                    placeholder="Search people by name, email, GitHub, or LeetCode..."
-                    value={searchPeople}
-                    onChange={(event) => setSearchPeople(event.target.value)}
-                    icon={<Search className="h-4 w-4" />}
-                />
+            <div className="flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex-1">
+                    <Input
+                        placeholder="Search people by name, Moodle ID, email, GitHub, LeetCode, or skill..."
+                        value={searchPeople}
+                        onChange={(event) => setSearchPeople(event.target.value)}
+                        icon={<Search className="h-4 w-4" />}
+                    />
+                </div>
+                <Button
+                    type="button"
+                    variant={showSkillFilters || selectedSkills.length > 0 ? 'secondary' : 'outline'}
+                    size="icon"
+                    onClick={() => setShowSkillFilters((prev) => !prev)}
+                    aria-label="Toggle skill filters"
+                >
+                    <Filter className="h-4 w-4" />
+                </Button>
             </div>
+
+            {(showSkillFilters || selectedSkills.length > 0) && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-900">Filter students by skill tags</p>
+                        {selectedSkills.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedSkills([])}
+                                className="text-xs font-medium text-slate-500 transition-colors hover:text-slate-700"
+                            >
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
+                    <div className="mb-3">
+                        <Input
+                            placeholder="Search from 50 popular tech skills and profile tags..."
+                            value={skillSearch}
+                            onChange={(event) => setSkillSearch(event.target.value)}
+                            icon={<Search className="h-4 w-4" />}
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {filteredAvailableSkills.map((skill) => {
+                            const isSelected = selectedSkills.includes(skill);
+                            return (
+                                <button key={skill} type="button" onClick={() => toggleSkill(skill)}>
+                                    <Badge variant={isSelected ? 'default' : 'outline'} className="cursor-pointer">
+                                        {skill}
+                                    </Badge>
+                                </button>
+                            );
+                        })}
+                        {filteredAvailableSkills.length === 0 && (
+                            <p className="text-sm text-slate-500">No skill tags match your current filter.</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {isLoading ? (
                 <div className="flex h-56 items-center justify-center">
@@ -322,10 +483,14 @@ export default function DiscoverPage() {
                 </div>
             ) : error ? (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{error}</div>
+            ) : isSearching ? (
+                <div className="flex h-40 items-center justify-center">
+                    <Spinner size="lg" />
+                </div>
             ) : filteredProfiles.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
                     <p className="font-semibold text-slate-800">No people found</p>
-                    <p className="mt-1 text-sm text-slate-500">Try another search keyword for name, email, GitHub, or LeetCode.</p>
+                    <p className="mt-1 text-sm text-slate-500">Try another search keyword for name, Moodle ID, email, GitHub, LeetCode, or skill.</p>
                 </div>
             ) : (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -359,6 +524,14 @@ export default function DiscoverPage() {
                                             )}
                                         </div>
                                         <p className="truncate text-xs text-slate-500">{item.user.email}</p>
+                                        {item.user.moodleId ? (
+                                            <p className="truncate text-xs text-slate-500">Moodle ID: {item.user.moodleId}</p>
+                                        ) : null}
+                                        {item.user.role === 'STUDENT' && (item.user.branch || item.user.year) ? (
+                                            <p className="truncate text-xs text-slate-500">
+                                                {formatAcademicProfile(item.user.branch, item.user.year)}
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </div>
 
@@ -367,6 +540,17 @@ export default function DiscoverPage() {
                                         <Users className="h-3.5 w-3.5" />
                                         {item.projectCount} active project{item.projectCount === 1 ? '' : 's'}
                                     </span>
+                                </div>
+
+                                <div className="mb-4 flex flex-wrap gap-2">
+                                    {(item.user.skillTags || item.user.skills || []).slice(0, 4).map((skill) => (
+                                        <Badge key={skill} variant="outline" className="font-normal">
+                                            {skill}
+                                        </Badge>
+                                    ))}
+                                    {(item.user.skillTags || item.user.skills || []).length === 0 && (
+                                        <span className="text-xs text-slate-400">No skill tags added yet</span>
+                                    )}
                                 </div>
 
                                 <div className="mb-4 grid grid-cols-2 gap-2 text-[11px]">

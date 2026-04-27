@@ -13,7 +13,7 @@ import { projectApi } from '@/api/project';
 import { userApi } from '@/api/user';
 import { useUser } from '@/hooks/useUser';
 import { formatRelativeTime } from '@/lib/utils';
-import { formatGithubUsername } from '@/lib/profileDisplay';
+import { formatAcademicProfile, formatGithubUsername } from '@/lib/profileDisplay';
 import { Project, User } from '@/types';
 import { Code2, FolderGit2, Github, Pin, Users } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -284,6 +284,11 @@ export default function DiscoverUserDetailPage() {
                                 )}
                             </div>
                             <p className="text-sm text-slate-600">{profile.email}</p>
+                            {profile.role === 'STUDENT' && (profile.branch || profile.year) ? (
+                                <p className="mt-1 text-sm text-slate-500">
+                                    {formatAcademicProfile(profile.branch, profile.year)}
+                                </p>
+                            ) : null}
                             {profile.bio && <p className="mt-2 max-w-2xl text-sm text-slate-500">{profile.bio}</p>}
                         </div>
                     </div>

@@ -11,9 +11,11 @@ export interface TeamMember {
 
 export interface Team {
     id: string;
+    ownerId?: string;
     projectId?: string;
     name?: string;
     description?: string;
+    searchKeywords?: string[];
     members: TeamMember[];
     capacity: number;
     teamMemberCount?: number;

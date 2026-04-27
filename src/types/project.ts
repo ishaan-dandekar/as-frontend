@@ -7,6 +7,7 @@ export interface Project {
     thumbnailUrl?: string;
     images: string[];
     techStack: string[];
+    domainTags: string[];
     ownerId: string;
     status: ProjectStatus;
     teamId?: string;
@@ -22,6 +23,7 @@ export interface Project {
 export interface ProjectFilter {
     status?: ProjectStatus;
     techStack?: string[];
+    domains?: string[];
     search?: string;
     year?: string;
     branch?: string;

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -26,13 +27,14 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
                 {...props}
             >
                 {normalizedSrc && !hasError ? (
-                    <img
+                    <Image
                         src={normalizedSrc}
                         alt={alt || 'Avatar'}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
+                        fill
+                        sizes="40px"
+                        className="object-cover"
                         onError={() => setHasError(true)}
+                        unoptimized={normalizedSrc.endsWith('.svg')}
                     />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-500 text-sm font-medium">

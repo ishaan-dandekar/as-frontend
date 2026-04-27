@@ -10,3 +10,8 @@ export function formatGithubUsername(username?: string): string {
     const normalized = (username || '').trim();
     return normalized ? `@${normalized}` : 'Not linked';
 }
+
+export function formatAcademicProfile(branch?: string, year?: string): string {
+    const parts = [year, branch].filter(Boolean);
+    return parts.length > 0 ? parts.join(' • ') : 'Not added';
+}

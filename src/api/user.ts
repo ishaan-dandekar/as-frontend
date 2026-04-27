@@ -13,10 +13,13 @@ type BackendUser = {
     last_name?: string;
     profile_picture_url?: string;
     bio?: string;
+    branch?: string;
+    year?: string;
     github_username?: string;
     leetcode_username?: string;
     role?: 'STUDENT' | 'DEPARTMENT';
     skills?: string[];
+    skill_tags?: string[];
     followersCount?: number;
     followingCount?: number;
     projectsCount?: number;
@@ -63,7 +66,7 @@ function resolveRole(user: BackendUser): 'STUDENT' | 'DEPARTMENT' {
 
 function mapUser(user: BackendUser): User {
     const normalizedRole = resolveRole(user);
-    const moodleId = (user.moodle_id || user.unique_id || user.username || '').trim() || undefined;
+    const moodleId = (user.moodle_id || user.unique_id || user.id || user.username || '').trim() || undefined;
 
     return {
         id: user.id,
@@ -71,9 +74,12 @@ function mapUser(user: BackendUser): User {
         name: normalizeDisplayName(user),
         email: user.email,
         role: normalizedRole,
+        branch: user.branch || undefined,
+        year: user.year || undefined,
         avatarUrl: withAvatarSyncVersion(user.profile_picture_url),
         bio: user.bio || '',
         skills: user.skills || [],
+        skillTags: user.skill_tags || user.skills || [],
         githubUsername: user.github_username,
         leetCodeUrl: user.leetcode_username,
         followersCount: user.followersCount || 0,
@@ -95,6 +101,8 @@ export const userApi = {
         const payload: Record<string, unknown> = {};
 
         if (typeof userData.bio === 'string') payload.bio = userData.bio;
+        if (typeof userData.branch === 'string') payload.branch = userData.branch;
+        if (typeof userData.year === 'string') payload.year = userData.year;
         if (typeof userData.githubUsername === 'string') payload.github_username = userData.githubUsername;
         if (typeof userData.leetCodeUrl === 'string') payload.leetcode_username = userData.leetCodeUrl;
         if (Array.isArray(userData.skills)) payload.skills = userData.skills;
@@ -118,11 +126,12 @@ export const userApi = {
             data: mapUser(response.data?.data || {}),
         };
     },
-    searchUsers: async (query = '', limit = 50): Promise<APIResponse<User[]>> => {
+    searchUsers: async (query = '', limit = 50, skills?: string[]): Promise<APIResponse<User[]>> => {
         const response = await api.get('/user/search', {
             params: {
                 q: query,
                 limit,
+                skills: skills && skills.length > 0 ? skills.join(',') : undefined,
             },
         });
 

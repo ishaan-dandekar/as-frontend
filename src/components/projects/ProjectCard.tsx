@@ -66,6 +66,16 @@ export function ProjectCard({
                 </CardHeader>
 
                 <CardContent className="p-4 py-2">
+                    {project.domainTags.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-1.5">
+                            {project.domainTags.slice(0, 2).map((domain) => (
+                                <Badge key={domain} className="font-normal">
+                                    {domain}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="flex flex-wrap gap-1.5">
                         {project.techStack.slice(0, 3).map((tech) => (
                             <Badge key={tech} variant="outline" className="font-normal">

@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import AppShell from "@/components/layout/AppShell";
 import { cn } from "@/lib/utils";
 
-const manrope = Manrope({
-  subsets: ["latin"],
+const appSans = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-sans",
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
+const appDisplay = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-display",
   display: "swap",
 });
@@ -40,10 +40,10 @@ export default function RootLayout({
       <body
         suppressHydrationWarning
         className={cn(
-          "antialiased bg-app text-slate-900 transition-colors duration-300",
-          manrope.variable,
-          spaceGrotesk.variable
-        )}
+  "antialiased bg-app text-slate-900 transition-colors duration-300",
+  appSans.variable,
+  appDisplay.variable
+)}
       >
         <Providers>
           <AppShell>{children}</AppShell>

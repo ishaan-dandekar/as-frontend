@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Filter, Search } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { useDebounce, useIntersectionObserver } from '@/hooks/utils';
 import { useUser } from '@/hooks/useUser';
@@ -13,6 +13,8 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -29,6 +31,8 @@ export default function ProjectFeedPage() {
     const [search, setSearch] = useState('');
     const [tech, setTech] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState<'ALL' | Project['status']>('ALL');
+    const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+    const [showDomainFilters, setShowDomainFilters] = useState(false);
     const [requestStateMap, setRequestStateMap] = useState<Record<string, 'idle' | 'loading' | 'sent' | 'error'>>({});
     const [requestMessage, setRequestMessage] = useState<string | null>(null);
     const debouncedSearch = useDebounce(search, 500);
@@ -61,13 +65,22 @@ export default function ProjectFeedPage() {
         [validProjects]
     );
 
+    const availableDomains = useMemo(() => {
+        const values = new Set<string>();
+        validProjects.forEach((project) => {
+            project.domainTags.forEach((tag) => values.add(tag));
+        });
+        return Array.from(values).sort((a, b) => a.localeCompare(b));
+    }, [validProjects]);
+
     useEffect(() => {
         setFilters({
             search: debouncedSearch,
             status: statusFilter === 'ALL' ? undefined : statusFilter,
             techStack: tech === 'ALL' ? undefined : [tech],
+            domains: selectedDomains.length > 0 ? selectedDomains : undefined,
         });
-    }, [debouncedSearch, setFilters, statusFilter, tech]);
+    }, [debouncedSearch, selectedDomains, setFilters, statusFilter, tech]);
 
     const loadMoreRef = useIntersectionObserver(() => {
         if (hasNextPage && !isFetchingNextPage) {
@@ -90,6 +103,14 @@ export default function ProjectFeedPage() {
             setRequestStateMap((prev) => ({ ...prev, [projectId]: 'error' }));
             setRequestMessage(message);
         }
+    };
+
+    const toggleDomain = (domain: string) => {
+        setSelectedDomains((prev) =>
+            prev.includes(domain)
+                ? prev.filter((item) => item !== domain)
+                : [...prev, domain]
+        );
     };
 
     return (
@@ -139,8 +160,53 @@ export default function ProjectFeedPage() {
                             { label: 'Tailwind', value: 'Tailwind' },
                         ]}
                     />
+                    <Button
+                        type="button"
+                        variant={showDomainFilters || selectedDomains.length > 0 ? 'secondary' : 'outline'}
+                        size="icon"
+                        onClick={() => setShowDomainFilters((prev) => !prev)}
+                        aria-label="Toggle domain filters"
+                    >
+                        <Filter className="h-4 w-4" />
+                    </Button>
                 </div>
             </div>
+
+            {(showDomainFilters || selectedDomains.length > 0) && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-900">Filter by domain tags</p>
+                        {selectedDomains.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedDomains([])}
+                                className="text-xs font-medium text-slate-500 transition-colors hover:text-slate-700"
+                            >
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {availableDomains.map((domain) => {
+                            const isSelected = selectedDomains.includes(domain);
+                            return (
+                                <button
+                                    key={domain}
+                                    type="button"
+                                    onClick={() => toggleDomain(domain)}
+                                >
+                                    <Badge variant={isSelected ? 'default' : 'outline'} className="cursor-pointer">
+                                        {domain}
+                                    </Badge>
+                                </button>
+                            );
+                        })}
+                        {availableDomains.length === 0 && (
+                            <p className="text-sm text-slate-500">Domain tags will appear as projects load.</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {requestMessage && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">

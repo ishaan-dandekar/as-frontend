@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users } from 'lucide-react';
+import { Trash2, Users } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Spinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
@@ -12,6 +12,7 @@ import { TeamMemberCard } from '@/components/team/TeamMemberCard';
 import { JoinRequestCard } from '@/components/team/JoinRequestCard';
 import { teamApi } from '@/api/team';
 import { TeamMember } from '@/types';
+import { useUser } from '@/hooks/useUser';
 
 export default function TeamDetailPage() {
     const params = useParams();
@@ -19,6 +20,8 @@ export default function TeamDetailPage() {
     const queryClient = useQueryClient();
     const id = String(params.id || '');
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
+    const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+    const { profile } = useUser();
 
     const { data: teamRes, isLoading: isTeamLoading } = useQuery({
         queryKey: ['team-detail', id],
@@ -26,10 +29,14 @@ export default function TeamDetailPage() {
         enabled: !!id,
     });
 
+    const team = teamRes?.data;
+    const isOwner = Boolean(profile?.id && team?.ownerId && profile.id === team.ownerId);
+
     const { data: incomingRequestsRes, isLoading: incomingRequestsLoading } = useQuery({
         queryKey: ['team-incoming-requests'],
         queryFn: () => teamApi.getIncomingJoinRequests(),
-        enabled: !!id,
+        enabled: !!id && isOwner,
+        retry: false,
     });
 
     const respondRequestMutation = useMutation({
@@ -45,7 +52,24 @@ export default function TeamDetailPage() {
         },
     });
 
-    const team = teamRes?.data;
+    const removeMemberMutation = useMutation({
+        mutationFn: (userId: string) => teamApi.removeMember(id, userId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['team-detail', id] });
+            queryClient.invalidateQueries({ queryKey: ['my-teams'] });
+        },
+        onSettled: () => {
+            setRemovingMemberId(null);
+        },
+    });
+
+    const deleteTeamMutation = useMutation({
+        mutationFn: () => teamApi.deleteTeam(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-teams'] });
+            router.push('/teams');
+        },
+    });
 
     const teamIncomingRequests = useMemo(() => {
         const items = incomingRequestsRes?.data?.items || [];
@@ -56,6 +80,23 @@ export default function TeamDetailPage() {
         if (respondingRequestId) return;
         setRespondingRequestId(requestId);
         respondRequestMutation.mutate({ requestId, action });
+    };
+
+    const handleRemoveMember = (member: TeamMember) => {
+        if (!isOwner || removingMemberId || member.role === 'OWNER') return;
+        const confirmed = window.confirm(`Remove ${member.name} from this team?`);
+        if (!confirmed) return;
+
+        setRemovingMemberId(member.userId);
+        removeMemberMutation.mutate(member.userId);
+    };
+
+    const handleDeleteTeam = () => {
+        if (!isOwner || deleteTeamMutation.isPending) return;
+        const confirmed = window.confirm('Delete this team? This cannot be undone.');
+        if (!confirmed) return;
+
+        deleteTeamMutation.mutate();
     };
 
     if (isTeamLoading) {
@@ -108,6 +149,18 @@ export default function TeamDetailPage() {
                             <Users className="h-3.5 w-3.5" />
                             {memberCount}/{capacity} members
                         </Badge>
+                        {isOwner ? (
+                            <Button
+                                variant="danger"
+                                size="sm"
+                                className="gap-2"
+                                onClick={handleDeleteTeam}
+                                isLoading={deleteTeamMutation.isPending}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                Delete Team
+                            </Button>
+                        ) : null}
                     </div>
                 </div>
             </div>
@@ -117,7 +170,13 @@ export default function TeamDetailPage() {
                 {team.members?.length ? (
                     <div className="grid gap-4 sm:grid-cols-2">
                         {team.members.map((member: TeamMember) => (
-                            <TeamMemberCard key={member.userId} member={member} />
+                            <TeamMemberCard
+                                key={member.userId}
+                                member={member}
+                                canRemove={isOwner && member.role !== 'OWNER'}
+                                isRemoving={removingMemberId === member.userId}
+                                onRemove={handleRemoveMember}
+                            />
                         ))}
                     </div>
                 ) : (
@@ -135,7 +194,11 @@ export default function TeamDetailPage() {
                     </Badge>
                 </div>
 
-                {incomingRequestsLoading ? (
+                {!isOwner ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+                        Only the team leader can review requests.
+                    </div>
+                ) : incomingRequestsLoading ? (
                     <div className="flex h-24 items-center justify-center">
                         <Spinner size="sm" />
                     </div>
@@ -152,7 +215,6 @@ export default function TeamDetailPage() {
                                     id: request.id,
                                     projectId: request.teamId,
                                     userId: request.userId,
-                                    moodleId: request.userMoodleId || request.userId,
                                     message: request.message || 'Would like to join your team.',
                                     role: 'MEMBER',
                                     status: request.status,

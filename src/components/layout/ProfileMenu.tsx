@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, LogOut, Settings } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, UserCircle2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { useClickOutside } from '@/hooks/utils';
 
@@ -11,6 +11,7 @@ type ProfileMenuProps = {
     email?: string;
     avatarUrl?: string;
     onLogout: () => void;
+    profileHref?: string;
     settingsHref?: string;
 };
 
@@ -19,6 +20,7 @@ export function ProfileMenu({
     email,
     avatarUrl,
     onLogout,
+    profileHref = '/profile',
     settingsHref = '/settings',
 }: ProfileMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -50,6 +52,15 @@ export function ProfileMenu({
 
             {isOpen && (
                 <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5">
+                    <Link
+                        href={profileHref}
+                        onClick={() => setIsOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    >
+                        <UserCircle2 className="h-4 w-4" />
+                        My Profile
+                    </Link>
+
                     <Link
                         href={settingsHref}
                         onClick={() => setIsOpen(false)}

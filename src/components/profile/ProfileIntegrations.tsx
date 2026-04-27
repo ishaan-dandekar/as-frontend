@@ -249,6 +249,11 @@ export function ProfileIntegrations({
                 window.addEventListener('storage', onStorage);
 
                 // Navigate only after listeners are registered to avoid missing fast callback messages.
+                if (!popup) {
+                    finish('reject', new Error('GitHub authorization popup was closed before navigation.'));
+                    return;
+                }
+
                 popup.location.href = start.authorizationUrl;
             });
         } catch (error) {

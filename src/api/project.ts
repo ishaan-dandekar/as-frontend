@@ -8,6 +8,7 @@ type BackendProject = {
     thumbnail_url?: string | null;
     images?: string[];
     tech_stack?: string[];
+    domain_tags?: string[];
     owner?: { id?: string };
     status: Project['status'];
     team?: string | null;
@@ -40,6 +41,7 @@ function mapProject(project: BackendProject): Project {
         thumbnailUrl: project.thumbnail_url || undefined,
         images: Array.isArray(project.images) ? project.images : [],
         techStack: Array.isArray(project.tech_stack) ? project.tech_stack : [],
+        domainTags: Array.isArray(project.domain_tags) ? project.domain_tags : [],
         ownerId: String(project.owner?.id || ''),
         status: project.status,
         teamId: project.team || undefined,
@@ -90,7 +92,14 @@ function toBackendProjectPayload(projectData: Partial<Project> & Record<string, 
 
 export const projectApi = {
     getProjects: async (filters?: ProjectFilter, page = 1, limit = 10): Promise<APIResponse<PaginatedResponse<Project>>> => {
-        const response = await api.get('/projects/', { params: { ...filters, page, limit } });
+        const response = await api.get('/projects/', {
+            params: {
+                ...filters,
+                domains: filters?.domains && filters.domains.length > 0 ? filters.domains.join(',') : undefined,
+                page,
+                limit,
+            },
+        });
         const items = Array.isArray(response.data?.data)
             ? (response.data.data as BackendProject[]).map(mapProject)
             : [];
@@ -162,6 +171,18 @@ export const projectApi = {
         const response = await api.get(`/projects/by-user/${userId}/`, {
             params: status ? { status } : undefined,
         });
+        const items = Array.isArray(response.data?.data)
+            ? (response.data.data as BackendProject[]).map(mapProject)
+            : [];
+
+        return {
+            success: !!response.data?.success,
+            message: response.data?.message,
+            data: items,
+        };
+    },
+    getRecommendedProjects: async (): Promise<APIResponse<Project[]>> => {
+        const response = await api.get('/projects/recommended/');
         const items = Array.isArray(response.data?.data)
             ? (response.data.data as BackendProject[]).map(mapProject)
             : [];

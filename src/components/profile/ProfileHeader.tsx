@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Github, Link as LinkIcon, Calendar, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { formatUserRole } from '@/lib/profileDisplay';
+import { formatAcademicProfile, formatUserRole } from '@/lib/profileDisplay';
 
 interface ProfileHeaderProps {
     user: User;
@@ -78,6 +78,11 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
                     <Calendar className="h-4 w-4" />
                     Joined {joined}
                 </span>
+                {user.role === 'STUDENT' && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700">
+                        {formatAcademicProfile(user.branch, user.year)}
+                    </span>
+                )}
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
 import { eventApi } from '@/api/event';
 import { Event } from '@/types';
 import { EventCard } from '@/components/events/EventCard';
@@ -181,12 +182,14 @@ export default function EventsPage() {
         queryFn: () => eventApi.getEvents(),
     });
 
-    const eventsData = eventsRes?.data as Event[] | { items?: Event[] } | undefined;
-    const events: Event[] = Array.isArray(eventsData)
-        ? eventsData
-        : Array.isArray(eventsData?.items)
-            ? eventsData.items
-            : [];
+    const events = useMemo(() => {
+        const eventsData = eventsRes?.data as Event[] | { items?: Event[] } | undefined;
+        return Array.isArray(eventsData)
+            ? eventsData
+            : Array.isArray(eventsData?.items)
+                ? eventsData.items
+                : [];
+    }, [eventsRes?.data]);
 
     const upcomingCount = useMemo(() => {
         const now = new Date();
@@ -211,7 +214,7 @@ export default function EventsPage() {
     const animatedWorkshop = useCountUp(workshopCount);
 
     // Simple filtering logic
-    const filteredEvents = events.filter((event) => {
+    const filteredEvents = useMemo(() => events.filter((event) => {
         const eventDate = event.date ? new Date(event.date) : null;
         const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             event.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -220,7 +223,7 @@ export default function EventsPage() {
         const matchesTab = activeTab === 'upcoming' ? isUpcoming : !isUpcoming;
 
         return matchesSearch && matchesTab;
-    });
+    }), [activeTab, events, searchQuery]);
 
     const handleSpotlightMove = (event: React.MouseEvent<HTMLElement>) => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -280,9 +283,11 @@ export default function EventsPage() {
                         </Button>
                     </div>
                     <div className="overflow-hidden rounded-xl border border-white/60 bg-white/60">
-                        <img
+                        <Image
                             src="/featured-event.svg"
                             alt="Featured event illustration"
+                            width={640}
+                            height={360}
                             className="h-full w-full object-cover"
                         />
                     </div>
