@@ -9,8 +9,8 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
     ({ className, variant = 'default', ...props }, ref) => {
         const variants = {
             default: 'bg-indigo-100 text-indigo-700',
-            secondary: 'bg-slate-100 text-slate-700',
-            outline: 'border border-slate-200 text-slate-600',
+            secondary: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+            outline: 'border border-app text-app-soft',
             success: 'bg-emerald-100 text-emerald-700',
             warning: 'bg-amber-100 text-amber-700',
             danger: 'bg-red-100 text-red-700',

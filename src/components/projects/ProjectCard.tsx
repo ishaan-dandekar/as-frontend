@@ -39,7 +39,7 @@ export function ProjectCard({
             whileHover={{ y: -5 }}
             transition={{ duration: 0.3 }}
         >
-            <Card className="h-full transition-shadow hover:shadow-xl border-slate-200/60 bg-white/70">
+            <Card className="h-full border-app bg-surface transition-shadow hover:shadow-xl">
                 <CardHeader className="p-4 pb-2">
                     <div className="flex items-center justify-between gap-2">
                         <Badge variant={project.status === 'LOOKING_FOR_TEAMMATES' ? 'success' : 'secondary'}>
@@ -48,15 +48,15 @@ export function ProjectCard({
                         <button
                             onClick={() => onBookmark?.(project.id)}
                             className={cn(
-                                "text-slate-400 hover:text-indigo-600 transition-colors",
-                                project.isBookmarked && "text-indigo-600"
+                                'text-app-muted hover:text-indigo-600 transition-colors dark:hover:text-indigo-300',
+                                project.isBookmarked && 'text-indigo-600 dark:text-indigo-300'
                             )}
                         >
-                            <Bookmark className="h-5 w-5" fill={project.isBookmarked ? "currentColor" : "none"} />
+                            <Bookmark className="h-5 w-5" fill={project.isBookmarked ? 'currentColor' : 'none'} />
                         </button>
                     </div>
                     <CardTitle className="mt-2 text-lg leading-snug">
-                        <Link href={`/projects/${project.id}`} className="hover:text-indigo-600 transition-colors">
+                        <Link href={`/projects/${project.id}`} className="transition-colors hover:text-indigo-600 dark:hover:text-indigo-300">
                             {project.title}
                         </Link>
                     </CardTitle>
@@ -83,29 +83,29 @@ export function ProjectCard({
                             </Badge>
                         ))}
                         {project.techStack.length > 3 && (
-                            <span className="text-xs text-slate-400 self-center">+{project.techStack.length - 3} more</span>
+                            <span className="text-app-muted self-center text-xs">+{project.techStack.length - 3} more</span>
                         )}
                     </div>
                 </CardContent>
 
-                <CardFooter className="p-4 pt-2 border-t border-slate-50 flex items-center justify-between">
+                <CardFooter className="border-app flex items-center justify-between border-t p-4 pt-2">
                     <div className="flex flex-col gap-2 w-full">
                         <div className="flex items-center justify-between text-[11px] mb-1">
-                            <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+                            <div className="text-app-muted flex items-center gap-1.5 font-medium">
                                 <Users className="h-3.5 w-3.5" />
                                 <span>{project.teamMemberCount || 0} / {project.teamCapacity || 5} members</span>
                             </div>
-                            <span className="text-slate-400">
+                            <span className="text-app-muted">
                                 {formatRelativeTime(project.createdAt)}
                             </span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                             <div
                                 className={cn(
-                                    "h-full transition-all duration-500",
+                                    'h-full transition-all duration-500',
                                     (project.teamMemberCount || 0) >= (project.teamCapacity || 5)
-                                        ? "bg-slate-300"
-                                        : "bg-indigo-500"
+                                        ? 'bg-slate-300 dark:bg-slate-600'
+                                        : 'bg-indigo-500 dark:bg-indigo-400'
                                 )}
                                 style={{ width: `${Math.min(100, ((project.teamMemberCount || 0) / (project.teamCapacity || 5)) * 100)}%` }}
                             />
@@ -117,10 +117,10 @@ export function ProjectCard({
                                 onClick={() => onToggleActive(project)}
                                 disabled={isToggleActiveLoading}
                                 className={cn(
-                                    "mt-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                                    'mt-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
                                     project.status === 'ACTIVE'
-                                        ? "border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200"
-                                        : "border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                                        ? 'border border-app bg-slate-100 text-app-soft hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'
+                                        : 'border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 dark:border-teal-500/40 dark:bg-teal-500/10 dark:text-teal-200 dark:hover:bg-teal-500/20'
                                 )}
                             >
                                 {isToggleActiveLoading
@@ -132,13 +132,13 @@ export function ProjectCard({
                         ) : (
                             (onMarkActive && project.status !== 'ACTIVE') && (
                                 <button
-                                    type="button"
-                                    onClick={() => onMarkActive(project.id)}
-                                    disabled={isMarkActiveLoading}
-                                    className="mt-1 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    {isMarkActiveLoading ? 'Updating...' : 'Mark as Active'}
-                                </button>
+                                type="button"
+                                onClick={() => onMarkActive(project.id)}
+                                disabled={isMarkActiveLoading}
+                                className="mt-1 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-teal-500/40 dark:bg-teal-500/10 dark:text-teal-200 dark:hover:bg-teal-500/20"
+                            >
+                                {isMarkActiveLoading ? 'Updating...' : 'Mark as Active'}
+                            </button>
                             )
                         )}
 

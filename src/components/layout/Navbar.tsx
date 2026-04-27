@@ -42,13 +42,13 @@ export function Navbar() {
     };
 
     return (
-        <nav className="fixed top-0 z-50 w-full border-b border-slate-300/95 bg-white/96 shadow-sm shadow-slate-300/55 backdrop-blur">
+        <nav className="fixed top-0 z-50 w-full border-b border-nav bg-nav shadow-sm shadow-slate-900/10 backdrop-blur-xl">
             <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-3">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-teal-700 text-sm font-bold text-white">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-500 text-sm font-bold text-white shadow-lg shadow-teal-900/20">
                         AS
                     </span>
-                    <Link href="/" className="font-display text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                    <Link href="/" className="font-display text-xl font-bold tracking-tight text-app sm:text-2xl">
                         APSIT Student Sphere
                     </Link>
                 </div>
@@ -64,8 +64,8 @@ export function Navbar() {
                                 className={[
                                     'rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors',
                                     isActive
-                                        ? 'bg-teal-100/90 text-teal-900 shadow-sm shadow-teal-900/10'
-                                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
+                                        ? 'bg-teal-100/90 text-teal-900 shadow-sm shadow-teal-900/10 dark:bg-teal-500/20 dark:text-teal-200'
+                                        : 'text-app-soft hover:bg-slate-100/80 hover:text-app dark:hover:bg-slate-800/60',
                                 ].join(' ')}
                             >
                                 {link.label}
@@ -108,7 +108,7 @@ export function Navbar() {
             </div>
 
             {isMobileMenuOpen && (
-                <div className="border-t border-slate-300/90 bg-white/98 px-4 py-4 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.75)] md:hidden">
+                <div className="border-t border-nav bg-nav px-4 py-4 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.75)] md:hidden">
                     <div className="flex flex-col gap-1">
                         <div className="mb-2 flex justify-end">
                             <ThemeToggle />
@@ -123,8 +123,8 @@ export function Navbar() {
                                     className={[
                                         'rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
                                         isActive
-                                            ? 'bg-teal-100 text-teal-900'
-                                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
+                                            ? 'bg-teal-100 text-teal-900 dark:bg-teal-500/20 dark:text-teal-200'
+                                            : 'text-app-soft hover:bg-slate-100/80 hover:text-app dark:hover:bg-slate-800/60',
                                     ].join(' ')}
                                 >
                                     {link.label}

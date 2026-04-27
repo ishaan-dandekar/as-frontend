@@ -40,10 +40,10 @@ export default function RootLayout({
       <body
         suppressHydrationWarning
         className={cn(
-  "antialiased bg-app text-slate-900 transition-colors duration-300",
-  appSans.variable,
-  appDisplay.variable
-)}
+          "bg-app text-app antialiased transition-colors duration-300",
+          appSans.variable,
+          appDisplay.variable
+        )}
       >
         <Providers>
           <AppShell>{children}</AppShell>

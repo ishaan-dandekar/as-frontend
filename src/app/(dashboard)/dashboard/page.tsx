@@ -259,12 +259,39 @@ export default function DashboardPage() {
         }
     };
 
-    // In a real app, these would be separate hooks
     const stats = [
-        { label: 'Active Projects', value: activeProjectsCount.toString(), color: 'indigo', icon: Rocket },
-        { label: 'Project Requests', value: displayedProjectJoinRequests.length.toString(), color: 'fuchsia', icon: User },
-        { label: 'Upcoming Events', value: eventsLoading ? '...' : upcomingEventsCount.toString(), color: 'emerald', icon: Calendar },
-        { label: 'Unread Alerts', value: unreadCount.toString(), color: 'amber', icon: Bell },
+        {
+            label: 'Active Projects',
+            value: activeProjectsCount.toString(),
+            icon: Rocket,
+            iconClassName: 'text-indigo-600 dark:text-indigo-300',
+            accentClassName: 'bg-indigo-100/90 dark:bg-indigo-400/15',
+            glowClassName: 'from-indigo-500/10',
+        },
+        {
+            label: 'Project Requests',
+            value: displayedProjectJoinRequests.length.toString(),
+            icon: User,
+            iconClassName: 'text-fuchsia-600 dark:text-fuchsia-300',
+            accentClassName: 'bg-fuchsia-100/90 dark:bg-fuchsia-400/15',
+            glowClassName: 'from-fuchsia-500/10',
+        },
+        {
+            label: 'Upcoming Events',
+            value: eventsLoading ? '...' : upcomingEventsCount.toString(),
+            icon: Calendar,
+            iconClassName: 'text-emerald-600 dark:text-emerald-300',
+            accentClassName: 'bg-emerald-100/90 dark:bg-emerald-400/15',
+            glowClassName: 'from-emerald-500/10',
+        },
+        {
+            label: 'Unread Alerts',
+            value: unreadCount.toString(),
+            icon: Bell,
+            iconClassName: 'text-amber-600 dark:text-amber-300',
+            accentClassName: 'bg-amber-100/90 dark:bg-amber-400/15',
+            glowClassName: 'from-amber-500/10',
+        },
     ];
 
     return (
@@ -274,10 +301,36 @@ export default function DashboardPage() {
             variants={containerVariants}
             className="mx-auto max-w-7xl space-y-8"
         >
-            <motion.div variants={itemVariants} className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Overview</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Welcome back to APSIT Student Sphere.</p>
+            <motion.div
+                variants={itemVariants}
+                className="hero-panel rounded-[28px] p-6 sm:p-8"
+            >
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl">
+                        <span className="mb-3 inline-flex rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-700 dark:text-teal-200">
+                            Student workspace
+                        </span>
+                        <h1 className="font-display text-app text-3xl font-bold tracking-tight sm:text-4xl">
+                            Dashboard Overview
+                        </h1>
+                        <p className="text-app-soft mt-3 max-w-xl text-sm font-medium sm:text-base">
+                            Welcome back to APSIT Student Sphere. Track your projects, requests, and team activity in one polished workspace.
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
+                        <div className="rounded-2xl border border-app bg-surface p-4">
+                            <p className="text-app-muted text-xs font-semibold uppercase tracking-[0.18em]">Profile</p>
+                            <p className="text-app mt-2 truncate text-sm font-semibold">{profile?.name || 'Student'}</p>
+                            <p className="text-app-soft truncate text-xs">{profile?.email || 'Update your profile details'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-app bg-surface p-4">
+                            <p className="text-app-muted text-xs font-semibold uppercase tracking-[0.18em]">Connected GitHub</p>
+                            <p className="text-app mt-2 text-sm font-semibold">
+                                {effectiveGithubUsername ? `@${effectiveGithubUsername}` : 'Not connected'}
+                            </p>
+                            <p className="text-app-soft text-xs">Sync repositories and activity</p>
+                        </div>
+                    </div>
                 </div>
             </motion.div>
 
@@ -290,53 +343,55 @@ export default function DashboardPage() {
                         key={stat.label}
                         variants={itemVariants}
                         whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
+                        className={`stat-shell group relative overflow-hidden rounded-[24px] p-6 transition-shadow hover:shadow-lg ${stat.glowClassName} bg-gradient-to-br to-transparent`}
                     >
-                        <div className={`absolute top-0 right-0 h-24 w-24 -mr-8 -mt-8 rounded-full bg-${stat.color}-50/50 group-hover:bg-${stat.color}-100/50 transition-colors duration-300`} />
-                        <div className="flex items-center justify-between relative z-10">
-                            <stat.icon className={`h-5 w-5 text-${stat.color}-600`} />
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                        <div className={`absolute right-5 top-5 h-12 w-12 rounded-2xl ${stat.accentClassName} blur-2xl transition-transform duration-300 group-hover:scale-125`} />
+                        <div className="relative z-10 flex items-start justify-between gap-4">
+                            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${stat.accentClassName}`}>
+                                <stat.icon className={`h-5 w-5 ${stat.iconClassName}`} />
+                            </div>
+                            <span className="text-app-muted text-right text-[11px] font-bold uppercase tracking-[0.22em]">{stat.label}</span>
                         </div>
-                        <p className="text-3xl font-bold text-slate-900 mt-4 relative z-10">{stat.value}</p>
+                        <p className="text-app relative z-10 mt-6 text-4xl font-bold tracking-tight">{stat.value}</p>
                     </motion.div>
                 ))}
             </motion.div>
 
             <motion.div
                 variants={itemVariants}
-                className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="surface-elevated rounded-[28px] p-6"
             >
                 <div className="mb-4 flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-semibold text-slate-900">My Profile</h2>
+                    <h2 className="text-app text-lg font-semibold">My Profile</h2>
                     <Link
                         href="/profile"
-                        className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-700"
+                        className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
                     >
                         Open full profile
                     </Link>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">{profile?.name || 'Not available'}</p>
+                    <div className="rounded-2xl border border-app bg-surface-strong p-4">
+                        <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">Name</p>
+                        <p className="text-app mt-2 text-sm font-semibold">{profile?.name || 'Not available'}</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
-                        <p className="mt-1 truncate text-sm text-slate-700">{profile?.email || 'Not available'}</p>
+                    <div className="rounded-2xl border border-app bg-surface-strong p-4">
+                        <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">Email</p>
+                        <p className="text-app-soft mt-2 truncate text-sm">{profile?.email || 'Not available'}</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">GitHub</p>
-                        <p className="mt-1 text-sm text-slate-700">{formatGithubUsername(profile?.githubUsername)}</p>
+                    <div className="rounded-2xl border border-app bg-surface-strong p-4">
+                        <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">GitHub</p>
+                        <p className="text-app-soft mt-2 text-sm">{formatGithubUsername(profile?.githubUsername)}</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">LeetCode</p>
-                        <p className="mt-1 text-sm text-slate-700">{effectiveLeetCodeUsername || 'Not linked'}</p>
+                    <div className="rounded-2xl border border-app bg-surface-strong p-4">
+                        <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">LeetCode</p>
+                        <p className="text-app-soft mt-2 text-sm">{effectiveLeetCodeUsername || 'Not linked'}</p>
                     </div>
                     {profile?.role === 'STUDENT' ? (
-                        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Academic</p>
-                            <p className="mt-1 text-sm text-slate-700">{formatAcademicProfile(profile?.branch, profile?.year)}</p>
+                        <div className="rounded-2xl border border-app bg-surface-strong p-4">
+                            <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">Academic</p>
+                            <p className="text-app-soft mt-2 text-sm">{formatAcademicProfile(profile?.branch, profile?.year)}</p>
                         </div>
                     ) : null}
                 </div>
@@ -344,17 +399,17 @@ export default function DashboardPage() {
 
             <motion.div
                 variants={itemVariants}
-                className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="surface-elevated rounded-[28px] p-6"
             >
                 <div className="mb-4 flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-semibold text-slate-900">My Projects</h2>
+                    <h2 className="text-app text-lg font-semibold">My Projects</h2>
                     <div className="flex items-center gap-3">
-                        <span className="text-xs font-medium text-slate-500">
+                        <span className="text-app-muted text-xs font-medium">
                             {effectiveGithubUsername ? `From @${effectiveGithubUsername}` : 'GitHub not connected'}
                         </span>
                         <Link
                             href="/my-projects"
-                            className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-700"
+                            className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
                         >
                             Open My Projects
                         </Link>
@@ -366,11 +421,11 @@ export default function DashboardPage() {
                         <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                     </div>
                 ) : !effectiveGithubUsername ? (
-                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40 p-5 text-sm text-slate-500">
+                    <div className="text-app-soft rounded-2xl border border-app border-dashed bg-surface-strong p-5 text-sm">
                         Connect GitHub in your profile to sync your repositories here.
                     </div>
                 ) : myGithubProjects.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/40 p-5 text-sm text-slate-500">
+                    <div className="text-app-soft rounded-2xl border border-app border-dashed bg-surface-strong p-5 text-sm">
                         No repositories found for your GitHub profile.
                     </div>
                 ) : (
@@ -381,16 +436,16 @@ export default function DashboardPage() {
                                 href={repo.html_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 transition-colors hover:border-slate-300 hover:bg-white"
+                                className="rounded-2xl border border-app bg-surface-strong p-4 transition-colors hover:border-app-strong hover:bg-surface"
                             >
                                 <div className="flex items-start justify-between gap-2">
-                                    <p className="line-clamp-1 text-sm font-semibold text-slate-900">{repo.name}</p>
-                                    <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                                    <p className="text-app line-clamp-1 text-sm font-semibold">{repo.name}</p>
+                                    <ExternalLink className="text-app-muted h-3.5 w-3.5" />
                                 </div>
-                                <p className="mt-1 line-clamp-2 text-xs text-slate-600">
+                                <p className="text-app-soft mt-1 line-clamp-2 text-xs">
                                     {repo.description || 'Repository from your connected GitHub profile.'}
                                 </p>
-                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <div className="text-app-muted mt-3 flex flex-wrap items-center gap-2 text-xs">
                                     {repo.language && <span>{repo.language}</span>}
                                     <span className="inline-flex items-center gap-1">
                                         <Star className="h-3 w-3" />
@@ -410,11 +465,11 @@ export default function DashboardPage() {
             <div className="grid items-start gap-6 lg:grid-cols-3">
                 <motion.div
                     variants={itemVariants}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                    className="surface-elevated rounded-[28px] p-6"
                 >
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-slate-900">Recommended Projects</h2>
-                        <span className="text-xs font-medium text-indigo-600">
+                        <h2 className="text-app text-lg font-semibold">Recommended Projects</h2>
+                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
                             {displayedRecommendedProjects.length > 0 && recommendedProjects.length === 0
                                 ? 'Using your existing projects'
                                 : 'Based on your profile and skills'}
@@ -425,7 +480,7 @@ export default function DashboardPage() {
                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                         </div>
                     ) : displayedRecommendedProjects.length === 0 ? (
-                        <div className="flex h-36 items-center justify-center rounded-lg bg-slate-50/50 border border-dashed border-slate-200 text-slate-400">
+                        <div className="text-app-muted flex h-36 items-center justify-center rounded-2xl border border-app border-dashed bg-surface-strong">
                             No recommendations yet
                         </div>
                     ) : (
@@ -439,35 +494,35 @@ export default function DashboardPage() {
 
                 <motion.div
                     variants={itemVariants}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                    className="surface-elevated rounded-[28px] p-6"
                 >
-                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Project Join Requests</h2>
+                    <h2 className="text-app mb-4 text-lg font-semibold">Project Join Requests</h2>
                     {joinRequestLoading ? (
                         <div className="flex h-36 items-center justify-center">
                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                         </div>
                     ) : displayedProjectJoinRequests.length === 0 ? (
-                        <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/40 text-sm text-slate-500">
+                        <div className="text-app-soft flex h-36 items-center justify-center rounded-2xl border border-app border-dashed bg-surface-strong text-sm">
                             No pending requests for your projects.
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {displayedProjectJoinRequests.map((req) => {
                                 return (
-                                <div key={req.id} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3">
+                                <div key={req.id} className="rounded-2xl border border-app bg-surface-strong p-4">
                                     <div className="flex items-start justify-between gap-2">
                                         <div>
-                                            <p className="text-sm font-semibold text-slate-900">{req.requester_name}</p>
-                                            <p className="text-sm text-slate-500">{req.requester_email}</p>
+                                            <p className="text-app text-sm font-semibold">{req.requester_name}</p>
+                                            <p className="text-app-muted text-sm">{req.requester_email}</p>
                                         </div>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-xs font-semibold text-fuchsia-700">
+                                            <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-xs font-semibold text-fuchsia-700 dark:bg-fuchsia-400/15 dark:text-fuchsia-200">
                                                 JOIN REQUEST
                                             </span>
                                         </div>
                                     </div>
-                                    <p className="mt-2 text-sm text-slate-600">Project: {req.project_title}</p>
-                                    {req.message && <p className="mt-1 text-sm text-slate-500">&quot;{req.message}&quot;</p>}
+                                    <p className="text-app-soft mt-2 text-sm">Project: {req.project_title}</p>
+                                    {req.message && <p className="text-app-muted mt-1 text-sm">&quot;{req.message}&quot;</p>}
                                     <div className="mt-3 flex gap-2">
                                         <button
                                             type="button"
@@ -495,15 +550,15 @@ export default function DashboardPage() {
 
                 <motion.div
                     variants={itemVariants}
-                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+                    className="surface-elevated rounded-[28px] p-6"
                 >
-                    <h2 className="text-lg font-semibold text-slate-900 mb-4">My Teams</h2>
+                    <h2 className="text-app mb-4 text-lg font-semibold">My Teams</h2>
                     {teamsLoading ? (
                         <div className="flex h-36 items-center justify-center">
                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                         </div>
                     ) : teams.length === 0 ? (
-                        <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/40 text-sm text-slate-500">
+                        <div className="text-app-soft flex h-36 items-center justify-center rounded-2xl border border-app border-dashed bg-surface-strong text-sm">
                             You have not joined any teams yet.
                         </div>
                     ) : (
@@ -512,13 +567,13 @@ export default function DashboardPage() {
                                 const membersCount = team.members?.length || team.teamMemberCount || 0;
                                 const capacity = team.capacity || team.teamCapacity || 0;
                                 return (
-                                    <div key={team.id} className="rounded-lg border border-slate-200 bg-slate-50/40 p-3">
+                                    <div key={team.id} className="rounded-2xl border border-app bg-surface-strong p-4">
                                         <div className="flex items-start justify-between gap-2">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-900">{team.name || 'Untitled Team'}</p>
-                                                <p className="text-xs text-slate-500">{team.description || 'No description available.'}</p>
+                                                <p className="text-app text-sm font-semibold">{team.name || 'Untitled Team'}</p>
+                                                <p className="text-app-muted text-xs">{team.description || 'No description available.'}</p>
                                             </div>
-                                            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                                            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-200">
                                                 {membersCount}/{capacity}
                                             </span>
                                         </div>

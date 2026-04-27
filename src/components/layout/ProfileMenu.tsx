@@ -33,7 +33,7 @@ export function ProfileMenu({
             <button
                 type="button"
                 onClick={() => setIsOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+                className="flex items-center gap-2 rounded-full border border-app bg-surface px-2 py-1.5 text-left shadow-sm transition-colors hover:bg-surface-strong"
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
                 aria-label="Open profile menu"
@@ -41,21 +41,21 @@ export function ProfileMenu({
                 <Avatar
                     src={avatarUrl}
                     fallback={name?.charAt(0) || 'U'}
-                    className="h-8 w-8 border border-slate-200"
+                    className="h-8 w-8 border border-app"
                 />
                 <div className="hidden min-w-0 text-left lg:block">
-                    <p className="truncate text-sm font-medium text-slate-900">{name || 'User'}</p>
-                    <p className="truncate text-xs text-slate-500">{email || ''}</p>
+                    <p className="text-app truncate text-sm font-medium">{name || 'User'}</p>
+                    <p className="text-app-muted truncate text-xs">{email || ''}</p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-slate-500" />
+                <ChevronDown className="text-app-muted h-4 w-4" />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5">
+                <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-app bg-surface p-1.5 shadow-lg ring-1 ring-black/5">
                     <Link
                         href={profileHref}
                         onClick={() => setIsOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                        className="text-app-soft hover:text-app flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
                     >
                         <UserCircle2 className="h-4 w-4" />
                         My Profile
@@ -64,7 +64,7 @@ export function ProfileMenu({
                     <Link
                         href={settingsHref}
                         onClick={() => setIsOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                        className="text-app-soft hover:text-app flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
                     >
                         <Settings className="h-4 w-4" />
                         Settings
