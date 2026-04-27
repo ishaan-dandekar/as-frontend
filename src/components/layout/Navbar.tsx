@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -45,9 +46,16 @@ export function Navbar() {
         <nav className="fixed top-0 z-50 w-full border-b border-nav bg-nav/95 shadow-[0_14px_36px_-26px_rgba(15,23,42,0.55)] backdrop-blur-2xl">
             <div className="container mx-auto flex h-[76px] items-center justify-between px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-3 sm:gap-4">
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-[20px] bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-500 text-sm font-extrabold text-white shadow-[0_18px_34px_-18px_rgba(13,148,136,0.7)] ring-1 ring-white/20">
-                        AS
-                    </span>
+                    <Link href="/" className="flex items-center gap-3 sm:gap-4">
+                        <Image 
+                            src="/logo.svg" 
+                            alt="APSIT Student Sphere" 
+                            width={44}
+                            height={44}
+                            className="h-11 w-11"
+                            priority
+                        />
+                    </Link>
                     <Link href="/" className="min-w-0">
                         <div className="flex flex-col">
                             <span className="brand-wordmark text-app text-[1.75rem] sm:text-[2rem]">

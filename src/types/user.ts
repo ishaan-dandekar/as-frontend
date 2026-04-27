@@ -1,13 +1,17 @@
-export type UserRole = 'STUDENT' | 'DEPARTMENT';
+export type UserRole = 'STUDENT' | 'ADMIN';
 
 export interface User {
     id: string;
+    uid?: string;
     moodleId?: string;
     name: string;
     email: string;
     role: UserRole;
     branch?: string;
+    department?: string;
     year?: string;
+    academicStatus?: string;
+    admissionYear?: number;
     avatarUrl?: string;
     bio?: string;
     skills: string[];
@@ -17,6 +21,7 @@ export interface User {
     followersCount: number;
     followingCount: number;
     projectsCount: number;
+    activeProjectsCount?: number;
     githubUsername?: string;
     website?: string;
     lastSyncTimestamp?: string;

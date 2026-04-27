@@ -42,9 +42,8 @@ type BriefLeetCodeStats = {
     ranking: number;
 };
 
-function isStudentProfile(user: User): boolean {
-    if (user.role === 'DEPARTMENT') return false;
-    return /^\d+@apsit\.edu\.in$/i.test((user.email || '').trim());
+function isDiscoverableProfile(user: User): boolean {
+    return /@apsit\.edu\.in$/i.test((user.email || '').trim());
 }
 
 export default function DiscoverPage() {
@@ -156,7 +155,19 @@ export default function DiscoverPage() {
 
                 discoveredUsers.forEach((user) => {
                     const existing = mergedProfiles.get(user.id);
+                    const resolvedProjectCount = Number(
+                        user.activeProjectsCount ?? existing?.projectCount ?? 0
+                    );
+
                     if (existing) {
+                        mergedProfiles.set(user.id, {
+                            ...existing,
+                            user: {
+                                ...existing.user,
+                                ...user,
+                            },
+                            projectCount: resolvedProjectCount,
+                        });
                         return;
                     }
 
@@ -168,7 +179,7 @@ export default function DiscoverPage() {
 
                     mergedProfiles.set(user.id, {
                         user,
-                        projectCount: fallbackStats.projectCount,
+                        projectCount: Number(user.activeProjectsCount ?? fallbackStats.projectCount ?? 0),
                         topTeamSize: fallbackStats.topTeamSize,
                         latestActivityTs: fallbackStats.latestActivityTs,
                     });
@@ -176,7 +187,7 @@ export default function DiscoverPage() {
 
                 if (!cancelled) {
                     setProfiles(
-                        Array.from(mergedProfiles.values()).filter((item) => isStudentProfile(item.user))
+                        Array.from(mergedProfiles.values()).filter((item) => isDiscoverableProfile(item.user))
                     );
                 }
             } catch {
@@ -278,10 +289,10 @@ export default function DiscoverPage() {
                 if (cancelled) return;
 
                 const remoteProfiles = (Array.isArray(response.data) ? response.data : [])
-                    .filter((user) => isStudentProfile(user))
+                    .filter((user) => isDiscoverableProfile(user))
                     .map((user) => {
                         const fallbackStats = statsByUserId.get(user.id) || {
-                            projectCount: Number(user.projectsCount || 0),
+                            projectCount: Number(user.activeProjectsCount ?? 0),
                             topTeamSize: 0,
                             latestActivityTs: 0,
                         };
@@ -411,9 +422,9 @@ export default function DiscoverPage() {
             <Breadcrumbs items={[{ label: 'Discover' }]} />
 
             <div className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Discover Student Profiles</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Discover Profiles</h1>
                 <p className="text-slate-600">
-                    Explore profiles from other students with their GitHub and LeetCode links.
+                    Explore students and admins with their academic details, project activity, GitHub, and LeetCode links.
                 </p>
             </div>
 
@@ -522,14 +533,17 @@ export default function DiscoverPage() {
                                                     You
                                                 </span>
                                             )}
+                                            <Badge variant="secondary" className="bg-slate-100 text-slate-700">
+                                                {item.user.role === 'ADMIN' ? 'Admin' : 'Student'}
+                                            </Badge>
                                         </div>
                                         <p className="truncate text-xs text-slate-500">{item.user.email}</p>
                                         {item.user.moodleId ? (
                                             <p className="truncate text-xs text-slate-500">Moodle ID: {item.user.moodleId}</p>
                                         ) : null}
-                                        {item.user.role === 'STUDENT' && (item.user.branch || item.user.year) ? (
+                                        {(item.user.department || item.user.branch || item.user.academicStatus || item.user.year) ? (
                                             <p className="truncate text-xs text-slate-500">
-                                                {formatAcademicProfile(item.user.branch, item.user.year)}
+                                                {formatAcademicProfile(item.user.department || item.user.branch, item.user.academicStatus || item.user.year)}
                                             </p>
                                         ) : null}
                                     </div>

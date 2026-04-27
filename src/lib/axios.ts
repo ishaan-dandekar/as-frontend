@@ -223,7 +223,7 @@ api.interceptors.request.use(
             }
 
             if (url.includes('/user/search') && config.method === 'get') {
-                const directoryUsers = getMockDirectoryUsers().filter((user) => user.role === 'STUDENT');
+                const directoryUsers = getMockDirectoryUsers();
                 const query = String(config.params?.q || '');
                 const skills = String(config.params?.skills || '')
                     .split(',')

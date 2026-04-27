@@ -36,7 +36,7 @@ export default function EventDetailPage() {
 
     const event = eventRes?.data;
     const canDeleteEvent = Boolean(
-        profile?.role === 'DEPARTMENT' &&
+        profile?.role === 'ADMIN' &&
         profile?.id &&
         event?.organizerId &&
         profile.id === event.organizerId

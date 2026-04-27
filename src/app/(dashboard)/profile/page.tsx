@@ -5,7 +5,6 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { Spinner } from '@/components/ui/Spinner';
 import { ProjectCard } from '@/components/projects/ProjectCard';
-import { useProjects } from '@/hooks/useProjects';
 import { GitHubStats } from '@/components/profile/GitHubStats';
 import { LeetCodeStats } from '@/components/profile/LeetCodeStats';
 import { Project } from '@/types';
@@ -14,6 +13,7 @@ import { leetcodeApi } from '@/api/leetcode';
 import { projectApi } from '@/api/project';
 import { ExternalLink, GitFork, Plus, RefreshCw, Star, X } from 'lucide-react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { useEffect, useState } from 'react';
@@ -24,7 +24,6 @@ export default function ProfilePage() {
     const storedOAuthSession = githubApi.getStoredOAuthSession();
     const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
     const { profile, isLoading: userLoading } = useUser();
-    const { projects, isLoading: projectsLoading, refetch } = useProjects();
     
     // State for connected profiles - use null to indicate explicitly disconnected
     const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
@@ -44,9 +43,16 @@ export default function ProfilePage() {
     const effectiveLeetCodeUsername = leetCodeUsername === null ? undefined : (leetCodeUsername ?? profile?.leetCodeUrl);
     const normalizedGithubUsername = (effectiveGithubUsername || '').trim().toLowerCase();
     const profileId = profile?.id;
-    const visibleProjects = (Array.isArray(projects) ? projects : [])
-        .filter((project): project is Project => Boolean(project && typeof project === 'object' && (project as Project).id))
-        .filter((project) => !profileId || project.ownerId === profileId);
+    const { data: visibleProjects = [], isLoading: projectsLoading, refetch } = useQuery({
+        queryKey: ['profile-projects', profileId],
+        queryFn: () => projectApi.getMyProjects().then((response) => {
+            const items = Array.isArray(response.data) ? response.data : [];
+            return items
+                .filter((project): project is Project => Boolean(project && typeof project === 'object' && project.id))
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        }),
+        enabled: !!profileId,
+    });
 
     const pinnedRepos = pinnedRepoIds
         .map((repoId) => allGithubRepos.find((repo) => String(repo.id) === repoId))
@@ -56,7 +62,17 @@ export default function ProfilePage() {
         (repo) => !pinnedRepoIds.includes(String(repo.id))
     );
 
-    const showcaseTotal = visibleProjects.length > 0 ? visibleProjects.length : pinnedRepos.length;
+    const totalProjectsCount = Number(
+        liveGithubStats?.user?.public_repos
+        ?? liveGithubStats?.repos
+        ?? (effectiveGithubUsername ? allGithubRepos.length : undefined)
+        ?? profile?.projectsCount
+        ?? visibleProjects.length
+        ?? 0
+    );
+    const activeProjectsCount = Number(
+        profile?.activeProjectsCount ?? visibleProjects.filter((project) => project.status === 'ACTIVE').length
+    );
 
     const handleToggleProjectActive = async (project: Project) => {
         try {
@@ -258,7 +274,7 @@ export default function ProfilePage() {
 
     const overviewFollowers = Number(liveGithubStats?.user?.followers ?? profile?.followersCount ?? 0);
     const overviewFollowing = Number(liveGithubStats?.user?.following ?? profile?.followingCount ?? 0);
-    const overviewProjects = showcaseTotal > 0 ? showcaseTotal : Number(profile?.projectsCount ?? 0);
+    const overviewProjects = totalProjectsCount;
 
     if (userLoading) {
         return (
@@ -287,6 +303,7 @@ export default function ProfilePage() {
                         followers={overviewFollowers}
                         following={overviewFollowing}
                         projects={overviewProjects}
+                        activeProjects={activeProjectsCount}
                     />
 
                     <GitHubStats username={effectiveGithubUsername} />
@@ -298,7 +315,7 @@ export default function ProfilePage() {
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="font-display text-2xl font-bold text-slate-900">My Projects</h2>
                             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                                {showcaseTotal} Total
+                                {totalProjectsCount} Total
                             </span>
                         </div>
 

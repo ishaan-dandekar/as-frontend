@@ -213,6 +213,16 @@ export default function EventsPage() {
     const animatedHackathon = useCountUp(hackathonCount);
     const animatedWorkshop = useCountUp(workshopCount);
 
+    const featuredEvent = useMemo(() => {
+        if (!events.length) return null;
+        const now = new Date();
+        const upcomingEvent = events.find(event => {
+            const eventDate = event.date ? new Date(event.date) : null;
+            return eventDate ? eventDate >= now : false;
+        });
+        return upcomingEvent || events[0];
+    }, [events]);
+
     // Simple filtering logic
     const filteredEvents = useMemo(() => events.filter((event) => {
         const eventDate = event.date ? new Date(event.date) : null;
@@ -254,45 +264,52 @@ export default function EventsPage() {
                     <h1 className="text-3xl font-bold text-slate-900">Campus Events</h1>
                     <p className="text-slate-500">Discover hackathons, workshops, and orientation sessions.</p>
                 </div>
-                {profile?.role === 'DEPARTMENT' && (
+                {profile?.role === 'ADMIN' && (
                     <Button onClick={() => setShowHostForm((prev) => !prev)}>
                         {showHostForm ? 'Cancel Hosting' : 'Host Event'}
                     </Button>
                 )}
             </motion.div>
 
-            <motion.div
-                className="spotlight-card overflow-hidden rounded-2xl border border-white/70 bg-white/70 shadow-soft backdrop-blur-lg"
-                variants={itemVariants}
-                onMouseMove={handleSpotlightMove}
-                onMouseLeave={resetSpotlight}
-            >
-                <div className="grid gap-6 p-5 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Featured Event</p>
-                        <h2 className="mt-2 text-2xl font-bold text-slate-900">Innovation Studio Week</h2>
-                        <p className="mt-2 text-sm text-slate-600">
-                            A focused sprint for project teams to refine demos, practice pitches, and connect with mentors.
-                        </p>
-                        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                            <span className="rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1">Apr 26 - Apr 30</span>
-                            <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1">Innovation Lab</span>
+            {featuredEvent && (
+                <motion.div
+                    className="spotlight-card overflow-hidden rounded-2xl border border-white/70 bg-white/70 shadow-soft backdrop-blur-lg"
+                    variants={itemVariants}
+                    onMouseMove={handleSpotlightMove}
+                    onMouseLeave={resetSpotlight}
+                >
+                    <div className="grid gap-6 p-5 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Featured Event</p>
+                            <h2 className="mt-2 text-2xl font-bold text-slate-900">{featuredEvent.title}</h2>
+                            <p className="mt-2 text-sm text-slate-600 line-clamp-3">
+                                {featuredEvent.description}
+                            </p>
+                            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                                <span className="rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1">
+                                    {featuredEvent.date ? new Date(featuredEvent.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBA'}
+                                    {featuredEvent.endDate && ` - ${new Date(featuredEvent.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                                </span>
+                                <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1">
+                                    {featuredEvent.isOnline ? 'Online' : (featuredEvent.location || 'TBA')}
+                                </span>
+                            </div>
+                            <Button className="mt-4" variant="outline">
+                                View schedule
+                            </Button>
                         </div>
-                        <Button className="mt-4" variant="outline">
-                            View schedule
-                        </Button>
+                        <div className="overflow-hidden rounded-xl border border-white/60 bg-white/60">
+                            <Image
+                                src="/featured-event.svg"
+                                alt="Featured event illustration"
+                                width={640}
+                                height={360}
+                                className="h-full w-full object-cover"
+                            />
+                        </div>
                     </div>
-                    <div className="overflow-hidden rounded-xl border border-white/60 bg-white/60">
-                        <Image
-                            src="/featured-event.svg"
-                            alt="Featured event illustration"
-                            width={640}
-                            height={360}
-                            className="h-full w-full object-cover"
-                        />
-                    </div>
-                </div>
-            </motion.div>
+                </motion.div>
+            )}
 
             <motion.div className="grid gap-4 sm:grid-cols-3" variants={itemVariants}>
                 <div
@@ -321,7 +338,7 @@ export default function EventsPage() {
                 </div>
             </motion.div>
 
-            {profile?.role === 'DEPARTMENT' && showHostForm && (
+            {profile?.role === 'ADMIN' && showHostForm && (
                 <motion.div
                     className="spotlight-card rounded-2xl border border-white/70 bg-white/60 p-4 shadow-soft backdrop-blur-lg space-y-3"
                     variants={itemVariants}

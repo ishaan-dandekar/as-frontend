@@ -3,6 +3,7 @@ import { setAvatarSyncVersionNow, withAvatarSyncVersion } from '@/lib/avatarUrl'
 
 type BackendUser = {
     id: string;
+    uid?: string;
     moodle_id?: string;
     unique_id?: string;
     name?: string;
@@ -12,14 +13,22 @@ type BackendUser = {
     last_name?: string;
     profile_picture_url?: string;
     bio?: string;
+    branch?: string;
+    department?: string;
+    admission_year?: number;
+    year?: string;
+    academic_status?: string;
     github_username?: string;
     leetcode_username?: string;
-    role?: 'STUDENT' | 'DEPARTMENT';
+    role?: 'STUDENT' | 'ADMIN' | 'DEPARTMENT';
     skills?: string[];
     skill_tags?: string[];
     followersCount?: number;
     followingCount?: number;
     projectsCount?: number;
+    projects_count?: number;
+    activeProjectsCount?: number;
+    active_projects_count?: number;
     created_at?: string;
 };
 
@@ -47,21 +56,26 @@ function normalizeDisplayName(user: BackendUser): string {
     return fallbackFromEmail ? toTitleCase(fallbackFromEmail) : 'User';
 }
 
-function resolveRole(user: BackendUser, hintRole?: string): 'STUDENT' | 'DEPARTMENT' {
-    if (hintRole === 'DEPARTMENT' || hintRole === 'STUDENT') return hintRole;
-    if (user.role === 'DEPARTMENT') return 'DEPARTMENT';
+function resolveRole(user: BackendUser, hintRole?: string): 'STUDENT' | 'ADMIN' {
+    if (user.role === 'STUDENT') return 'STUDENT';
+    if (user.role === 'ADMIN' || user.role === 'DEPARTMENT') return 'ADMIN';
+    if (hintRole === 'STUDENT') return 'STUDENT';
+    if (hintRole === 'ADMIN' || hintRole === 'DEPARTMENT') return 'ADMIN';
 
     const storedRole =
         typeof window !== 'undefined'
             ? localStorage.getItem('userRole')
             : null;
-    if (storedRole === 'DEPARTMENT' || storedRole === 'STUDENT') {
-        return storedRole;
+    if (storedRole === 'STUDENT') {
+        return 'STUDENT';
+    }
+    if (storedRole === 'ADMIN' || storedRole === 'DEPARTMENT') {
+        return 'ADMIN';
     }
 
     const localPart = (user.email || '').split('@')[0] || '';
     const hasDigits = /\d/.test(localPart);
-    return hasDigits ? 'STUDENT' : 'DEPARTMENT';
+    return hasDigits ? 'STUDENT' : 'ADMIN';
 }
 
 function mapUser(user: BackendUser, hintRole?: string) {
@@ -70,10 +84,16 @@ function mapUser(user: BackendUser, hintRole?: string) {
 
     return {
         id: user.id,
+        uid: user.uid || moodleId,
         moodleId,
         name: normalizeDisplayName(user),
         email: user.email,
         role: normalizedRole,
+        branch: user.branch || undefined,
+        department: user.department || user.branch || undefined,
+        year: user.year || user.academic_status || undefined,
+        academicStatus: user.academic_status || user.year || undefined,
+        admissionYear: typeof user.admission_year === 'number' ? user.admission_year : undefined,
         avatarUrl: withAvatarSyncVersion(user.profile_picture_url),
         bio: user.bio || '',
         skills: user.skills || [],
@@ -82,7 +102,8 @@ function mapUser(user: BackendUser, hintRole?: string) {
         leetCodeUrl: user.leetcode_username,
         followersCount: user.followersCount || 0,
         followingCount: user.followingCount || 0,
-        projectsCount: user.projectsCount || 0,
+        projectsCount: Number(user.projects_count ?? user.projectsCount ?? 0),
+        activeProjectsCount: Number(user.active_projects_count ?? user.activeProjectsCount ?? 0),
         createdAt: user.created_at || new Date().toISOString(),
     };
 }

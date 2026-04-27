@@ -11,28 +11,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ProfileIntegrations } from '@/components/profile/ProfileIntegrations';
 import { githubApi } from '@/api/github';
 import { leetcodeApi } from '@/api/leetcode';
-import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
-import { PencilLine, Plus, Sparkles, X } from 'lucide-react';
+import { GraduationCap, Hash, PencilLine, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { POPULAR_SKILL_TAGS, normalizeSkillTag, normalizeSkillTags, parseSkillInput } from '@/lib/skills';
-
-const BRANCH_OPTIONS = [
-    { label: 'Select branch', value: '' },
-    { label: 'CE', value: 'CE' },
-    { label: 'IT', value: 'IT' },
-    { label: 'AI-ML', value: 'AI-ML' },
-    { label: 'DS', value: 'DS' },
-    { label: 'Civil', value: 'Civil' },
-    { label: 'Mechanical', value: 'Mechanical' },
-];
-
-const YEAR_OPTIONS = [
-    { label: 'Select year', value: '' },
-    { label: 'FE', value: 'FE' },
-    { label: 'SE', value: 'SE' },
-    { label: 'TE', value: 'TE' },
-    { label: 'BE', value: 'BE' },
-];
+import { formatAcademicProfile, formatUserRole } from '@/lib/profileDisplay';
 
 export default function SettingsPage() {
     const { profile, isLoading, updateProfile, isUpdating } = useUser();
@@ -40,8 +22,6 @@ export default function SettingsPage() {
     const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
 
     const [bio, setBio] = useState('');
-    const [branch, setBranch] = useState('');
-    const [year, setYear] = useState('');
     const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
     const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(storedLeetCodeUsername || undefined);
     const [skills, setSkills] = useState<string[]>([]);
@@ -56,8 +36,6 @@ export default function SettingsPage() {
     useEffect(() => {
         if (!profile) return;
         setBio(profile.bio || '');
-        setBranch(profile.branch || '');
-        setYear(profile.year || '');
         setSkills(normalizeSkillTags(profile.skills || []));
     }, [profile]);
 
@@ -131,8 +109,6 @@ export default function SettingsPage() {
         try {
             await updateProfile({
                 bio,
-                branch,
-                year,
                 skills,
             });
 
@@ -227,16 +203,81 @@ export default function SettingsPage() {
                     <Spinner size="lg" />
                 </div>
             ) : (
-                <div className="space-y-6">
-                    <Card id="integrations">
-                        <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                            <CardTitle className="flex items-center gap-2 text-xl">
-                                <PencilLine className="h-5 w-5 text-indigo-600" />
-                                Edit Profile
-                            </CardTitle>
-                            <CardDescription>These details are shown on your profile and project collaborations.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                <div className="grid gap-6 xl:grid-cols-[0.95fr_1.45fr]">
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-teal-50 via-white to-amber-50">
+                                <div className="flex items-center gap-4">
+                                    <Avatar
+                                        src={profile?.avatarUrl}
+                                        fallback={profile?.name?.charAt(0) || 'U'}
+                                        className="h-16 w-16 border border-white shadow-sm"
+                                    />
+                                    <div>
+                                        <CardTitle className="text-xl text-slate-900">{profile?.name}</CardTitle>
+                                        <CardDescription>{profile?.email}</CardDescription>
+                                        <div className="mt-2 inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                                            {formatUserRole(profile?.role)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4 pt-6">
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                            <Hash className="h-3.5 w-3.5" />
+                                            UID
+                                        </p>
+                                        <p className="mt-2 text-sm font-semibold text-slate-900">{profile?.uid || profile?.moodleId || 'Not available'}</p>
+                                    </div>
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                            <GraduationCap className="h-3.5 w-3.5" />
+                                            Academic Snapshot
+                                        </p>
+                                        <p className="mt-2 text-sm font-semibold text-slate-900">
+                                            {formatAcademicProfile(profile?.department || profile?.branch, profile?.academicStatus || profile?.year)}
+                                        </p>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            Admission year: {profile?.admissionYear || 'Not available'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                            <ShieldCheck className="h-3.5 w-3.5" />
+                                            Role Access
+                                        </p>
+                                        <p className="mt-2 text-sm font-semibold text-slate-900">{profile?.role === 'ADMIN' ? 'Admin can host and manage events.' : 'Student profile access is enabled.'}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="border-b border-slate-100 bg-slate-50/70">
+                                <CardTitle className="text-lg">Read-only academic fields</CardTitle>
+                                <CardDescription>These are derived automatically from your APSIT UID during sign-in.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
+                                <Input label="Department" value={profile?.department || profile?.branch || 'Not available'} disabled />
+                                <Input label="Academic Status" value={profile?.academicStatus || profile?.year || 'Not available'} disabled />
+                                <Input label="Admission Year" value={profile?.admissionYear ? String(profile.admissionYear) : 'Not available'} disabled />
+                                <Input label="Role" value={formatUserRole(profile?.role)} disabled />
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="space-y-6">
+                        <Card id="integrations">
+                            <CardHeader className="border-b border-slate-100 bg-slate-50/70">
+                                <CardTitle className="flex items-center gap-2 text-xl">
+                                    <PencilLine className="h-5 w-5 text-indigo-600" />
+                                    Edit Profile
+                                </CardTitle>
+                                <CardDescription>Update the parts of your profile that are meant to evolve over time.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4 pt-6">
                             {message && (
                                 <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                                     {message}
@@ -358,49 +399,29 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                            {profile?.role === 'STUDENT' ? (
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-1.5">
-                                        <label className="text-sm font-medium text-slate-700">Branch</label>
-                                        <Select
-                                            value={branch}
-                                            onChange={(e) => setBranch(e.target.value)}
-                                            options={BRANCH_OPTIONS}
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-sm font-medium text-slate-700">Year</label>
-                                        <Select
-                                            value={year}
-                                            onChange={(e) => setYear(e.target.value)}
-                                            options={YEAR_OPTIONS}
-                                        />
-                                    </div>
-                                </div>
-                            ) : null}
-
                             <div className="flex justify-end">
                                 <Button onClick={onSave} isLoading={isUpdating}>Save Changes</Button>
                             </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
 
-                    <Card>
-                        <CardHeader className="border-b border-slate-100 bg-slate-50/70">
-                            <CardTitle className="text-xl">Coding Integrations</CardTitle>
-                            <CardDescription>Connect GitHub and LeetCode from settings to power your profile stats.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ProfileIntegrations
-                                githubUsername={effectiveGithubUsername}
-                                leetCodeUsername={effectiveLeetCodeUsername}
-                                onGithubConnect={handleGithubConnect}
-                                onLeetCodeConnect={handleLeetCodeConnect}
-                                onGithubDisconnect={handleGithubDisconnect}
-                                onLeetCodeDisconnect={handleLeetCodeDisconnect}
-                            />
-                        </CardContent>
-                    </Card>
+                        <Card>
+                            <CardHeader className="border-b border-slate-100 bg-slate-50/70">
+                                <CardTitle className="text-xl">Coding Integrations</CardTitle>
+                                <CardDescription>Connect GitHub and LeetCode from settings to power your profile stats.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ProfileIntegrations
+                                    githubUsername={effectiveGithubUsername}
+                                    leetCodeUsername={effectiveLeetCodeUsername}
+                                    onGithubConnect={handleGithubConnect}
+                                    onLeetCodeConnect={handleLeetCodeConnect}
+                                    onGithubDisconnect={handleGithubDisconnect}
+                                    onLeetCodeDisconnect={handleLeetCodeDisconnect}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             )}
         </div>

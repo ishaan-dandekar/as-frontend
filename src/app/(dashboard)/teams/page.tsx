@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Users, Plus } from 'lucide-react';
+import { Inbox, Plus, Search, UserPlus, Users } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -14,6 +14,33 @@ import { JoinRequestCard } from '@/components/team/JoinRequestCard';
 import { teamApi } from '@/api/team';
 import { Team } from '@/types';
 import { useUser } from '@/hooks/useUser';
+
+function SummaryCard({
+    label,
+    value,
+    helper,
+    icon: Icon,
+}: {
+    label: string;
+    value: number | string;
+    helper: string;
+    icon: typeof Users;
+}) {
+    return (
+        <div className="rounded-2xl border border-app bg-surface-strong p-4">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <p className="text-app-muted text-xs font-semibold uppercase tracking-[0.14em]">{label}</p>
+                    <p className="text-app mt-2 text-2xl font-bold">{value}</p>
+                    <p className="text-app-soft mt-1 text-sm">{helper}</p>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                    <Icon className="h-5 w-5" />
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function TeamsPage() {
     const router = useRouter();
@@ -68,10 +95,23 @@ export default function TeamsPage() {
             setCreateSuccess('Team created successfully.');
             setShowCreateForm(false);
         },
-        onError: (error: unknown) => {
-            const apiError = error as { response?: { data?: { message?: string } } };
+        onError: (mutationError: unknown) => {
+            const apiError = mutationError as { response?: { data?: { message?: string } } };
             setCreateSuccess(null);
             setCreateError(apiError.response?.data?.message || 'Failed to create team.');
+        },
+    });
+
+    const respondRequestMutation = useMutation({
+        mutationFn: ({ requestId, action }: { requestId: string; action: 'APPROVE' | 'REJECT' }) =>
+            teamApi.respondToTeamJoinRequest(requestId, action),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['team-incoming-requests'] });
+            queryClient.invalidateQueries({ queryKey: ['my-teams'] });
+            queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
+        },
+        onSettled: () => {
+            setRespondingRequestId(null);
         },
     });
 
@@ -79,6 +119,7 @@ export default function TeamsPage() {
     const discoverTeams = useMemo(() => (discoverRes?.data || []) as Team[], [discoverRes?.data]);
     const incomingRequests = incomingRequestsRes?.data?.items || [];
     const normalizedTeamSearch = teamSearch.trim().toLowerCase();
+
     const filteredDiscoverTeams = useMemo(() => {
         if (!normalizedTeamSearch) return discoverTeams;
 
@@ -96,18 +137,10 @@ export default function TeamsPage() {
         });
     }, [discoverTeams, normalizedTeamSearch]);
 
-    const respondRequestMutation = useMutation({
-        mutationFn: ({ requestId, action }: { requestId: string; action: 'APPROVE' | 'REJECT' }) =>
-            teamApi.respondToTeamJoinRequest(requestId, action),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['team-incoming-requests'] });
-            queryClient.invalidateQueries({ queryKey: ['my-teams'] });
-            queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
-        },
-        onSettled: () => {
-            setRespondingRequestId(null);
-        },
-    });
+    const totalDiscoverCapacity = useMemo(
+        () => filteredDiscoverTeams.reduce((sum, team) => sum + Number(team.capacity || team.teamCapacity || 0), 0),
+        [filteredDiscoverTeams]
+    );
 
     const handleCreateTeam = () => {
         const normalizedName = teamName.trim();
@@ -140,8 +173,8 @@ export default function TeamsPage() {
             const response = await teamApi.requestToJoinTeam(teamId);
             setJoinFeedback(response.message || 'Join request sent successfully.');
             queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
-        } catch (error: unknown) {
-            const apiError = error as { response?: { data?: { message?: string } } };
+        } catch (requestError: unknown) {
+            const apiError = requestError as { response?: { data?: { message?: string } } };
             setJoinFeedback(apiError.response?.data?.message || 'Failed to send join request.');
         } finally {
             setJoiningTeamId(null);
@@ -163,215 +196,312 @@ export default function TeamsPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <Breadcrumbs items={[{ label: 'My Teams' }]} />
+        <div className="space-y-8">
+            <Breadcrumbs items={[{ label: 'Teams' }]} />
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">My Teams</h1>
-                    <p className="text-slate-600">View, create, and join teams.</p>
-                </div>
-                <Button className="gap-2" onClick={() => setShowCreateForm((prev) => !prev)}>
-                    <Plus className="h-4 w-4" />
-                    {showCreateForm ? 'Cancel' : 'Create Team'}
-                </Button>
-            </div>
-
-            {showCreateForm ? (
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Create a New Team</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <Input
-                            label="Team Name"
-                            value={teamName}
-                            onChange={(e) => setTeamName(e.target.value)}
-                            placeholder="Enter team name"
-                        />
-                        <Input
-                            label="Capacity"
-                            type="number"
-                            min={2}
-                            max={20}
-                            value={teamCapacity}
-                            onChange={(e) => setTeamCapacity(e.target.value)}
-                        />
+            <section className="hero-panel rounded-[30px] p-6 sm:p-7">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="max-w-2xl space-y-3">
+                        <div>
+                            <h1 className="font-display text-3xl font-bold text-app sm:text-4xl">Teams</h1>
+                            <p className="text-app-soft mt-2 max-w-2xl text-sm sm:text-base">
+                                Create your crew, review incoming requests, and discover teams that match your interests without losing track of capacity or momentum.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="mb-1.5 text-sm font-medium text-slate-700">Description</p>
-                        <Textarea
-                            value={teamDescription}
-                            onChange={(e) => setTeamDescription(e.target.value)}
-                            placeholder="What is this team focused on?"
-                            maxLength={300}
-                            showCount
-                        />
+
+                    <div className="flex flex-wrap gap-3">
+                        <Button className="gap-2" onClick={() => setShowCreateForm((prev) => !prev)}>
+                            <Plus className="h-4 w-4" />
+                            {showCreateForm ? 'Close Form' : 'Create Team'}
+                        </Button>
                     </div>
-                    {createError ? <p className="text-sm text-red-600">{createError}</p> : null}
-                    {createSuccess ? <p className="text-sm text-emerald-700">{createSuccess}</p> : null}
-                    <Button onClick={handleCreateTeam} isLoading={createTeamMutation.isPending}>
-                        Save Team
-                    </Button>
-                </div>
-            ) : null}
-
-            <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-slate-900">Your Teams</h2>
-                {isLoading ? (
-                <div className="flex h-64 items-center justify-center">
-                    <Spinner size="lg" />
-                </div>
-            ) : error ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
-                    <h3 className="text-lg font-semibold">Unable to load teams</h3>
-                    <p className="mt-1 text-sm">Please sign in from the landing page or try again in a moment.</p>
-                </div>
-            ) : teams.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                        <Users className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-slate-900">No teams to show yet</h3>
-                    <p className="mt-2 text-slate-500">
-                        Create your own team or send a request to join a team below.
-                    </p>
-                </div>
-            ) : (
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {teams.map((team) => (
-                        <button
-                            key={team.id}
-                            type="button"
-                            onClick={() => router.push(`/teams/${team.id}`)}
-                            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
-                        >
-                            <div className="mb-3 flex items-center justify-between gap-3">
-                                <h3 className="truncate text-lg font-semibold text-slate-900">{team.name || 'Untitled Team'}</h3>
-                                <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-                                    {team.members?.length || team.teamMemberCount || 0}/{team.capacity || team.teamCapacity || 0}
-                                </span>
-                            </div>
-                            <p className="line-clamp-2 text-sm text-slate-600">{team.description || 'No description available.'}</p>
-
-                            <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                                <span>{team.members?.length || team.teamMemberCount || 0} members</span>
-                                <span>Capacity {team.capacity || team.teamCapacity || 0}</span>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-                )}
-            </section>
-
-            <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold text-slate-900">Incoming Join Requests</h2>
-                    <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs">
-                        {incomingRequests.length}
-                    </Badge>
                 </div>
 
-                {incomingRequestsLoading ? (
-                    <div className="flex h-32 items-center justify-center">
-                        <Spinner size="lg" />
-                    </div>
-                ) : incomingRequests.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-                        No pending requests for your teams right now.
-                    </div>
-                ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {incomingRequests.map((request) => (
-                            <div key={request.id} className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Team: {request.teamName}
-                                </p>
-                                <JoinRequestCard
-                                    request={{
-                                        id: request.id,
-                                        projectId: request.teamId,
-                                        userId: request.userId,
-                                        message: request.message || 'Would like to join your team.',
-                                        role: 'MEMBER',
-                                        status: request.status,
-                                        createdAt: request.createdAt,
-                                        user: {
-                                            id: request.userId,
-                                            name: request.userName,
-                                            email: request.userEmail,
-                                            avatarUrl: request.userAvatarUrl,
-                                            role: 'STUDENT',
-                                            skills: [],
-                                            followersCount: 0,
-                                            followingCount: 0,
-                                            projectsCount: 0,
-                                            createdAt: request.createdAt,
-                                        },
-                                    }}
-                                    onAccept={(requestId) => handleRespondJoinRequest(requestId, 'APPROVE')}
-                                    onReject={(requestId) => handleRespondJoinRequest(requestId, 'REJECT')}
-                                    disabled={respondingRequestId === request.id}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </section>
-
-            <section className="space-y-4">
-                <h2 className="text-xl font-semibold text-slate-900">Discover Teams</h2>
-                <div className="max-w-xl">
-                    <Input
-                        placeholder="Search teams by description keywords..."
-                        value={teamSearch}
-                        onChange={(event) => setTeamSearch(event.target.value)}
-                        icon={<Search className="h-4 w-4" />}
-                        helperText="Team descriptions are turned into searchable keywords behind the scenes."
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <SummaryCard
+                        label="Your Teams"
+                        value={teams.length}
+                        helper="Teams you own or belong to"
+                        icon={Users}
+                    />
+                    <SummaryCard
+                        label="Open Requests"
+                        value={incomingRequests.length}
+                        helper="Pending join approvals"
+                        icon={Inbox}
+                    />
+                    <SummaryCard
+                        label="Discoverable"
+                        value={filteredDiscoverTeams.length}
+                        helper="Teams currently open to explore"
+                        icon={Search}
+                    />
+                    <SummaryCard
+                        label="Total Seats"
+                        value={totalDiscoverCapacity}
+                        helper="Capacity across discover teams"
+                        icon={UserPlus}
                     />
                 </div>
-                {joinFeedback ? (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                        {joinFeedback}
+            </section>
+
+            {showCreateForm ? (
+                <section className="surface-elevated rounded-[28px] p-6">
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-app text-2xl font-semibold">Create a New Team</h2>
+                            <p className="text-app-soft mt-1 text-sm">Set a clear team identity so others understand the mission before they request to join.</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                            Step 1
+                        </Badge>
                     </div>
-                ) : null}
-                {discoverLoading ? (
-                    <div className="flex h-32 items-center justify-center">
-                        <Spinner size="lg" />
-                    </div>
-                ) : filteredDiscoverTeams.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-                        No teams match those description keywords right now.
-                    </div>
-                ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        {filteredDiscoverTeams.map((team) => (
-                            <div key={team.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                                <div className="mb-3 flex items-center justify-between gap-3">
-                                    <h3 className="truncate text-lg font-semibold text-slate-900">{team.name || 'Untitled Team'}</h3>
-                                    <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700">
-                                        {team.teamMemberCount || team.members.length}/{team.capacity || team.teamCapacity || 0}
-                                    </span>
-                                </div>
-                                <p className="line-clamp-2 text-sm text-slate-600 mb-4">
-                                    {team.description || 'No description available.'}
+
+                    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.55fr]">
+                        <div className="space-y-4">
+                            <Input
+                                label="Team Name"
+                                value={teamName}
+                                onChange={(event) => setTeamName(event.target.value)}
+                                placeholder="Example: Product Sprint Crew"
+                            />
+                            <div>
+                                <p className="text-app mb-1.5 text-sm font-medium">Description</p>
+                                <Textarea
+                                    value={teamDescription}
+                                    onChange={(event) => setTeamDescription(event.target.value)}
+                                    placeholder="What is this team building, who should join, and what skills are helpful?"
+                                    maxLength={300}
+                                    showCount
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 rounded-2xl border border-app bg-surface-strong p-4">
+                            <Input
+                                label="Capacity"
+                                type="number"
+                                min={2}
+                                max={20}
+                                value={teamCapacity}
+                                onChange={(event) => setTeamCapacity(event.target.value)}
+                            />
+                            <div className="rounded-2xl border border-app bg-surface p-4">
+                                <p className="text-app-muted text-xs font-semibold uppercase tracking-[0.14em]">Quick Guidance</p>
+                                <p className="text-app-soft mt-2 text-sm">
+                                    Small focused teams usually work best between 3 and 6 members. Keep the description concrete so the right people apply.
                                 </p>
-                                {(team.searchKeywords || []).length > 0 && (
+                            </div>
+                            {createError ? <p className="text-sm text-red-500">{createError}</p> : null}
+                            {createSuccess ? <p className="text-sm text-emerald-600">{createSuccess}</p> : null}
+                            <Button onClick={handleCreateTeam} isLoading={createTeamMutation.isPending} className="w-full">
+                                Save Team
+                            </Button>
+                        </div>
+                    </div>
+                </section>
+            ) : null}
+
+            <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                <section className="surface-elevated rounded-[28px] p-6">
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-app text-2xl font-semibold">Your Teams</h2>
+                            <p className="text-app-soft mt-1 text-sm">Open any team to manage members, capacity, and project context.</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-surface-strong text-app">{teams.length}</Badge>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="flex h-64 items-center justify-center">
+                            <Spinner size="lg" />
+                        </div>
+                    ) : error ? (
+                        <div className="rounded-2xl border border-amber-300/50 bg-amber-50/60 p-6 text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+                            <h3 className="text-lg font-semibold">Unable to load teams</h3>
+                            <p className="mt-1 text-sm">Please sign in from the landing page or try again in a moment.</p>
+                        </div>
+                    ) : teams.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-app bg-surface-strong p-10 text-center">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
+                                <Users className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-app text-lg font-semibold">No teams yet</h3>
+                            <p className="text-app-soft mt-2 text-sm">Create your first team or browse discoverable teams below to get started.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            {teams.map((team) => (
+                                <button
+                                    key={team.id}
+                                    type="button"
+                                    onClick={() => router.push(`/teams/${team.id}`)}
+                                    className="group rounded-[24px] border border-app bg-surface-strong p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-app-strong hover:shadow-soft"
+                                >
+                                    <div className="mb-4 flex items-start justify-between gap-3">
+                                        <div>
+                                            <h3 className="text-app text-lg font-semibold">{team.name || 'Untitled Team'}</h3>
+                                            <p className="text-app-soft mt-1 line-clamp-2 text-sm">
+                                                {team.description || 'No description available.'}
+                                            </p>
+                                        </div>
+                                        <span className="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">
+                                            {team.members?.length || team.teamMemberCount || 0}/{team.capacity || team.teamCapacity || 0}
+                                        </span>
+                                    </div>
+
                                     <div className="mb-4 flex flex-wrap gap-2">
-                                        {team.searchKeywords?.slice(0, 4).map((keyword) => (
-                                            <Badge key={keyword} variant="outline" className="font-normal">
+                                        {(team.searchKeywords || []).slice(0, 4).map((keyword) => (
+                                            <Badge key={keyword} variant="outline" className="border-app bg-surface text-app-soft font-normal">
                                                 {keyword}
                                             </Badge>
                                         ))}
                                     </div>
-                                )}
-                                <Button
-                                    className="w-full"
-                                    variant="outline"
-                                    onClick={() => handleJoinTeam(team.id)}
-                                    isLoading={joiningTeamId === team.id}
-                                    disabled={joiningTeamId !== null && joiningTeamId !== team.id}
-                                >
-                                    Request to Join
-                                </Button>
+
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-app-soft">{team.members?.length || team.teamMemberCount || 0} members</span>
+                                        <span className="text-app-soft">Capacity {team.capacity || team.teamCapacity || 0}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                <section className="surface-elevated rounded-[28px] p-6">
+                    <div className="mb-5 flex items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-app text-2xl font-semibold">Incoming Join Requests</h2>
+                            <p className="text-app-soft mt-1 text-sm">Review requests from students who want to contribute to your teams.</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-surface-strong text-app">{incomingRequests.length}</Badge>
+                    </div>
+
+                    {incomingRequestsLoading ? (
+                        <div className="flex h-40 items-center justify-center">
+                            <Spinner size="lg" />
+                        </div>
+                    ) : incomingRequests.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-app bg-surface-strong p-10 text-center">
+                            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-app-soft">
+                                <Inbox className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-app text-lg font-semibold">No pending requests</h3>
+                            <p className="text-app-soft mt-2 text-sm">When someone asks to join one of your teams, it will show up here.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {incomingRequests.map((request) => (
+                                <div key={request.id} className="rounded-[24px] border border-app bg-surface-strong p-4">
+                                    <p className="text-app-muted mb-3 text-xs font-semibold uppercase tracking-[0.14em]">
+                                        Team: {request.teamName}
+                                    </p>
+                                    <JoinRequestCard
+                                        request={{
+                                            id: request.id,
+                                            projectId: request.teamId,
+                                            userId: request.userId,
+                                            message: request.message || 'Would like to join your team.',
+                                            role: 'MEMBER',
+                                            status: request.status,
+                                            createdAt: request.createdAt,
+                                            user: {
+                                                id: request.userId,
+                                                name: request.userName,
+                                                email: request.userEmail,
+                                                avatarUrl: request.userAvatarUrl,
+                                                role: 'STUDENT',
+                                                skills: [],
+                                                followersCount: 0,
+                                                followingCount: 0,
+                                                projectsCount: 0,
+                                                createdAt: request.createdAt,
+                                            },
+                                        }}
+                                        onAccept={(requestId) => handleRespondJoinRequest(requestId, 'APPROVE')}
+                                        onReject={(requestId) => handleRespondJoinRequest(requestId, 'REJECT')}
+                                        disabled={respondingRequestId === request.id}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            </div>
+
+            <section className="surface-elevated rounded-[28px] p-6">
+                <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                        <h2 className="text-app text-2xl font-semibold">Discover Teams</h2>
+                        <p className="text-app-soft mt-1 text-sm">Search by description keywords and request to join teams that fit your goals.</p>
+                    </div>
+                    <div className="w-full max-w-2xl">
+                        <Input
+                            placeholder="Search teams by mission, stack, or description keywords..."
+                            value={teamSearch}
+                            onChange={(event) => setTeamSearch(event.target.value)}
+                            icon={<Search className="h-4 w-4" />}
+                            helperText="Descriptions are converted into searchable keywords behind the scenes."
+                        />
+                    </div>
+                </div>
+
+                {joinFeedback ? (
+                    <div className="mb-4 rounded-2xl border border-emerald-300/50 bg-emerald-50/70 p-4 text-sm text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-200">
+                        {joinFeedback}
+                    </div>
+                ) : null}
+
+                {discoverLoading ? (
+                    <div className="flex h-40 items-center justify-center">
+                        <Spinner size="lg" />
+                    </div>
+                ) : filteredDiscoverTeams.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-app bg-surface-strong p-10 text-center">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-app-soft">
+                            <Search className="h-6 w-6" />
+                        </div>
+                        <h3 className="text-app text-lg font-semibold">No matching teams right now</h3>
+                        <p className="text-app-soft mt-2 text-sm">Try a broader keyword or clear the search to see all discoverable teams.</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {filteredDiscoverTeams.map((team) => (
+                            <div key={team.id} className="flex flex-col rounded-[24px] border border-app bg-surface-strong p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-app-strong hover:shadow-soft">
+                                <div className="mb-4 flex items-start justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-app text-lg font-semibold">{team.name || 'Untitled Team'}</h3>
+                                        <p className="text-app-soft mt-1 line-clamp-3 text-sm">
+                                            {team.description || 'No description available.'}
+                                        </p>
+                                    </div>
+                                    <span className="rounded-full bg-[color:var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">
+                                        {team.teamMemberCount || team.members.length}/{team.capacity || team.teamCapacity || 0}
+                                    </span>
+                                </div>
+
+                                <div className="mb-4 flex flex-wrap gap-2">
+                                    {(team.searchKeywords || []).slice(0, 5).map((keyword) => (
+                                        <Badge key={keyword} variant="outline" className="border-app bg-surface text-app-soft font-normal text-xs">
+                                            {keyword}
+                                        </Badge>
+                                    ))}
+                                </div>
+
+                                <div className="mt-auto flex items-center justify-between gap-3">
+                                    <div className="text-app-soft text-sm">
+                                        {team.teamMemberCount || team.members.length} members
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => handleJoinTeam(team.id)}
+                                        isLoading={joiningTeamId === team.id}
+                                        disabled={joiningTeamId !== null && joiningTeamId !== team.id}
+                                    >
+                                        Request to Join
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>

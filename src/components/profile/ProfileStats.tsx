@@ -1,21 +1,29 @@
 'use client';
 
-import { Folder, Users, UserPlus } from 'lucide-react';
+import { Activity, Folder, Users, UserPlus } from 'lucide-react';
 
 interface ProfileStatsProps {
     followers: number;
     following: number;
     projects: number;
+    activeProjects?: number;
 }
 
-export function ProfileStats({ followers, following, projects }: ProfileStatsProps) {
+export function ProfileStats({ followers, following, projects, activeProjects = 0 }: ProfileStatsProps) {
     const stats = [
         {
-            label: 'Projects',
+            label: 'Total Projects',
             value: projects,
             icon: Folder,
             iconClass: 'text-teal-700',
             iconBg: 'bg-teal-100'
+        },
+        {
+            label: 'Active Now',
+            value: activeProjects,
+            icon: Activity,
+            iconClass: 'text-emerald-700',
+            iconBg: 'bg-emerald-100'
         },
         {
             label: 'Followers',
@@ -36,7 +44,7 @@ export function ProfileStats({ followers, following, projects }: ProfileStatsPro
     return (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Overview</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
                 {stats.map((stat) => {
                 const Icon = stat.icon;
 

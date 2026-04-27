@@ -4,6 +4,7 @@ import { withAvatarSyncVersion } from '@/lib/avatarUrl';
 
 type BackendUser = {
     id: string;
+    uid?: string;
     moodle_id?: string;
     unique_id?: string;
     name?: string;
@@ -14,15 +15,21 @@ type BackendUser = {
     profile_picture_url?: string;
     bio?: string;
     branch?: string;
+    department?: string;
+    admission_year?: number;
     year?: string;
+    academic_status?: string;
     github_username?: string;
     leetcode_username?: string;
-    role?: 'STUDENT' | 'DEPARTMENT';
+    role?: 'STUDENT' | 'ADMIN' | 'DEPARTMENT';
     skills?: string[];
     skill_tags?: string[];
     followersCount?: number;
     followingCount?: number;
     projectsCount?: number;
+    projects_count?: number;
+    activeProjectsCount?: number;
+    active_projects_count?: number;
     created_at?: string;
 };
 
@@ -56,12 +63,13 @@ function normalizeDisplayName(user: BackendUser): string {
     return fallbackFromEmail ? toTitleCase(fallbackFromEmail) : 'User';
 }
 
-function resolveRole(user: BackendUser): 'STUDENT' | 'DEPARTMENT' {
-    if (user.role === 'DEPARTMENT') return 'DEPARTMENT';
+function resolveRole(user: BackendUser): 'STUDENT' | 'ADMIN' {
+    if (user.role === 'STUDENT') return 'STUDENT';
+    if (user.role === 'ADMIN' || user.role === 'DEPARTMENT') return 'ADMIN';
 
     const localPart = (user.email || '').split('@')[0] || '';
     const isLikelyStudent = /^\d+$/.test(localPart);
-    return isLikelyStudent ? 'STUDENT' : 'DEPARTMENT';
+    return isLikelyStudent ? 'STUDENT' : 'ADMIN';
 }
 
 function mapUser(user: BackendUser): User {
@@ -70,12 +78,16 @@ function mapUser(user: BackendUser): User {
 
     return {
         id: user.id,
+        uid: user.uid || moodleId,
         moodleId,
         name: normalizeDisplayName(user),
         email: user.email,
         role: normalizedRole,
         branch: user.branch || undefined,
-        year: user.year || undefined,
+        department: user.department || user.branch || undefined,
+        year: user.year || user.academic_status || undefined,
+        academicStatus: user.academic_status || user.year || undefined,
+        admissionYear: typeof user.admission_year === 'number' ? user.admission_year : undefined,
         avatarUrl: withAvatarSyncVersion(user.profile_picture_url),
         bio: user.bio || '',
         skills: user.skills || [],
@@ -84,7 +96,8 @@ function mapUser(user: BackendUser): User {
         leetCodeUrl: user.leetcode_username,
         followersCount: user.followersCount || 0,
         followingCount: user.followingCount || 0,
-        projectsCount: user.projectsCount || 0,
+        projectsCount: Number(user.projects_count ?? user.projectsCount ?? 0),
+        activeProjectsCount: Number(user.active_projects_count ?? user.activeProjectsCount ?? 0),
         createdAt: user.created_at || new Date().toISOString(),
     };
 }
@@ -101,8 +114,6 @@ export const userApi = {
         const payload: Record<string, unknown> = {};
 
         if (typeof userData.bio === 'string') payload.bio = userData.bio;
-        if (typeof userData.branch === 'string') payload.branch = userData.branch;
-        if (typeof userData.year === 'string') payload.year = userData.year;
         if (typeof userData.githubUsername === 'string') payload.github_username = userData.githubUsername;
         if (typeof userData.leetCodeUrl === 'string') payload.leetcode_username = userData.leetCodeUrl;
         if (Array.isArray(userData.skills)) payload.skills = userData.skills;

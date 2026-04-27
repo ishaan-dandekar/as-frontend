@@ -15,7 +15,7 @@ import { useUser } from '@/hooks/useUser';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatAcademicProfile, formatGithubUsername } from '@/lib/profileDisplay';
 import { Project, User } from '@/types';
-import { Code2, FolderGit2, Github, Pin, Users } from 'lucide-react';
+import { CalendarDays, Code2, FolderGit2, Github, GraduationCap, Hash, Pin, ShieldCheck, Users } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 
 const PINNED_PROJECT_LIMIT = 3;
@@ -65,7 +65,7 @@ export default function DiscoverUserDetailPage() {
                 const isSelf = Boolean(currentProfile?.id && currentProfile.id === userIdentifier) || isSelfByMoodleId;
                 const profilePromise =
                     isSelf
-                        ? Promise.resolve({ data: currentProfile })
+                        ? userApi.getProfile()
                         : userApi.getUserById(userIdentifier);
 
                 const profileResponse = await profilePromise;
@@ -89,19 +89,8 @@ export default function DiscoverUserDetailPage() {
                         userProjects = [];
                     }
                 } else {
-                    const fetchedProjects: Project[] = [];
-                    const pageLimit = 50;
-                    let page = 1;
-                    let totalPages = 1;
-
-                    do {
-                        const pageResponse = await projectApi.getProjects(undefined, page, pageLimit);
-                        fetchedProjects.push(...(pageResponse.data?.items || []));
-                        totalPages = pageResponse.data?.totalPages || 1;
-                        page += 1;
-                    } while (page <= totalPages && page <= 6);
-
-                    userProjects = fetchedProjects.filter((project) => project.ownerId === loadedProfile.id);
+                    const publicProjectsResponse = await projectApi.getProjectsByUser(loadedProfile.id);
+                    userProjects = Array.isArray(publicProjectsResponse.data) ? publicProjectsResponse.data : [];
                 }
 
                 const normalizedProjects = userProjects
@@ -215,6 +204,9 @@ export default function DiscoverUserDetailPage() {
     const followingCount = githubStats && githubStats !== null
         ? Number(githubStats.user.following || 0)
         : Number(profile?.followingCount || 0);
+    const totalProjectsCount = githubStats && githubStats !== null
+        ? Number(githubStats.user.public_repos || githubStats.repos || 0)
+        : Number(profile?.projectsCount || projects.length || 0);
 
     const pinnedProjects = useMemo(() => {
         const explicitPinned = projects
@@ -266,59 +258,95 @@ export default function DiscoverUserDetailPage() {
                 ]}
             />
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <Avatar
-                            src={profile.avatarUrl}
-                            fallback={(profile.name || 'U').charAt(0).toUpperCase()}
-                            className="h-14 w-14 border border-teal-200 bg-teal-100 text-lg font-bold text-teal-700"
-                        />
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-2xl font-bold tracking-tight text-slate-900">{profile.name}</h1>
-                                {isCurrentUser && (
-                                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                                        You
-                                    </span>
-                                )}
+            <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+                <div className="bg-gradient-to-r from-teal-50 via-white to-amber-50 px-6 py-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <Avatar
+                                src={profile.avatarUrl}
+                                fallback={(profile.name || 'U').charAt(0).toUpperCase()}
+                                className="h-16 w-16 border border-white bg-teal-100 text-lg font-bold text-teal-700"
+                            />
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">{profile.name}</h1>
+                                    {isCurrentUser && (
+                                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                                            You
+                                        </span>
+                                    )}
+                                    <Badge variant="secondary" className="bg-slate-900 text-white">
+                                        {profile.role === 'ADMIN' ? 'Admin' : 'Student'}
+                                    </Badge>
+                                </div>
+                                <p className="text-sm text-slate-600">{profile.email}</p>
+                                {profile.bio && <p className="mt-2 max-w-2xl text-sm text-slate-500">{profile.bio}</p>}
                             </div>
-                            <p className="text-sm text-slate-600">{profile.email}</p>
-                            {profile.role === 'STUDENT' && (profile.branch || profile.year) ? (
-                                <p className="mt-1 text-sm text-slate-500">
-                                    {formatAcademicProfile(profile.branch, profile.year)}
-                                </p>
-                            ) : null}
-                            {profile.bio && <p className="mt-2 max-w-2xl text-sm text-slate-500">{profile.bio}</p>}
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                    <ProfileStats
-                        followers={followersCount}
-                        following={followingCount}
-                        projects={projects.length}
-                    />
+                <div className="space-y-5 p-6">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                <Hash className="h-3.5 w-3.5" />
+                                UID
+                            </p>
+                            <p className="mt-2 text-sm font-semibold text-slate-900">{profile.uid || profile.moodleId || 'Not available'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                <GraduationCap className="h-3.5 w-3.5" />
+                                Academic
+                            </p>
+                            <p className="mt-2 text-sm font-semibold text-slate-900">
+                                {formatAcademicProfile(profile.department || profile.branch, profile.academicStatus || profile.year)}
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                <CalendarDays className="h-3.5 w-3.5" />
+                                Admission
+                            </p>
+                            <p className="mt-2 text-sm font-semibold text-slate-900">{profile.admissionYear || 'Not available'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                Role
+                            </p>
+                            <p className="mt-2 text-sm font-semibold text-slate-900">{profile.role === 'ADMIN' ? 'Admin' : 'Student'}</p>
+                        </div>
+                    </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Active</p>
-                            <p className="mt-1 text-xl font-bold text-slate-900">{activeProjectsCount}</p>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">GitHub</p>
-                            <p className="mt-1 text-xl font-bold text-slate-900">
-                                {formatGithubUsername(effectiveGithubUsername)}
-                            </p>
-                            <p className="text-xs text-slate-500">Username</p>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">LeetCode</p>
-                            <p className="mt-1 text-xl font-bold text-slate-900">
-                                {effectiveLeetCodeUsername || 'Not linked'}
-                            </p>
-                            <p className="text-xs text-slate-500">Username</p>
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <ProfileStats
+                            followers={followersCount}
+                            following={followingCount}
+                            projects={totalProjectsCount}
+                            activeProjects={Number(profile.activeProjectsCount || activeProjectsCount)}
+                        />
+
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Active</p>
+                                <p className="mt-1 text-xl font-bold text-slate-900">{Number(profile.activeProjectsCount || activeProjectsCount)}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">GitHub</p>
+                                <p className="mt-1 text-xl font-bold text-slate-900">
+                                    {formatGithubUsername(effectiveGithubUsername)}
+                                </p>
+                                <p className="text-xs text-slate-500">Username</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">LeetCode</p>
+                                <p className="mt-1 text-xl font-bold text-slate-900">
+                                    {effectiveLeetCodeUsername || 'Not linked'}
+                                </p>
+                                <p className="text-xs text-slate-500">Username</p>
+                            </div>
                         </div>
                     </div>
                 </div>

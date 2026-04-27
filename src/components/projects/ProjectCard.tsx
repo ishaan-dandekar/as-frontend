@@ -69,7 +69,7 @@ export function ProjectCard({
                     {project.domainTags.length > 0 && (
                         <div className="mb-3 flex flex-wrap gap-1.5">
                             {project.domainTags.slice(0, 2).map((domain) => (
-                                <Badge key={domain} className="font-normal">
+                                <Badge key={domain} className="bg-emerald-100/80 text-emerald-700 hover:bg-emerald-200 border-none font-normal dark:bg-emerald-500/20 dark:text-emerald-300">
                                     {domain}
                                 </Badge>
                             ))}
@@ -78,7 +78,7 @@ export function ProjectCard({
 
                     <div className="flex flex-wrap gap-1.5">
                         {project.techStack.slice(0, 3).map((tech) => (
-                            <Badge key={tech} variant="outline" className="font-normal">
+                            <Badge key={tech} variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 font-normal dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
                                 {tech}
                             </Badge>
                         ))}
@@ -119,7 +119,7 @@ export function ProjectCard({
                                 className={cn(
                                     'mt-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50',
                                     project.status === 'ACTIVE'
-                                        ? 'border border-app bg-slate-100 text-app-soft hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'
+                                        ? 'bg-gradient-to-r from-emerald-300 to-teal-300 text-teal-950 hover:from-emerald-400 hover:to-teal-400 shadow-sm'
                                         : 'border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 dark:border-teal-500/40 dark:bg-teal-500/10 dark:text-teal-200 dark:hover:bg-teal-500/20'
                                 )}
                             >

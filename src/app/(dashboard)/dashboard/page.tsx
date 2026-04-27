@@ -388,10 +388,10 @@ export default function DashboardPage() {
                         <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">LeetCode</p>
                         <p className="text-app-soft mt-2 text-sm">{effectiveLeetCodeUsername || 'Not linked'}</p>
                     </div>
-                    {profile?.role === 'STUDENT' ? (
+                    {(profile?.department || profile?.branch || profile?.academicStatus || profile?.year) ? (
                         <div className="rounded-2xl border border-app bg-surface-strong p-4">
                             <p className="text-app-muted text-xs font-semibold uppercase tracking-wide">Academic</p>
-                            <p className="text-app-soft mt-2 text-sm">{formatAcademicProfile(profile?.branch, profile?.year)}</p>
+                            <p className="text-app-soft mt-2 text-sm">{formatAcademicProfile(profile?.department || profile?.branch, profile?.academicStatus || profile?.year)}</p>
                         </div>
                     ) : null}
                 </div>
