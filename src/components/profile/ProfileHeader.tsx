@@ -11,9 +11,10 @@ import { formatAcademicProfile, formatUserRole } from '@/lib/profileDisplay';
 interface ProfileHeaderProps {
     user: User;
     isOwnProfile?: boolean;
+    isSkillsLoading?: boolean;
 }
 
-export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
+export function ProfileHeader({ user, isOwnProfile, isSkillsLoading = false }: ProfileHeaderProps) {
     const joined = user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A';
     const bioText = user.bio?.trim() || '';
     const academicSummary = formatAcademicProfile(user.department || user.branch, user.academicStatus || user.year);
@@ -120,6 +121,16 @@ export function ProfileHeader({ user, isOwnProfile }: ProfileHeaderProps) {
                                 {skill}
                             </Badge>
                         ))
+                    ) : isSkillsLoading ? (
+                        <>
+                            {['skill-1', 'skill-2', 'skill-3'].map((placeholder) => (
+                                <span
+                                    key={placeholder}
+                                    className="border-app bg-surface-strong h-8 w-20 animate-pulse rounded-full border"
+                                    aria-hidden="true"
+                                />
+                            ))}
+                        </>
                     ) : (
                         <span className="text-app-muted text-sm">No skills added yet.</span>
                     )}

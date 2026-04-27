@@ -3,8 +3,8 @@
 import { Activity, Folder, Users, UserPlus } from 'lucide-react';
 
 interface ProfileStatsProps {
-    followers: number;
-    following: number;
+    followers?: number | null;
+    following?: number | null;
     projects: number;
     activeProjects?: number;
 }
@@ -58,7 +58,7 @@ export function ProfileStats({ followers, following, projects, activeProjects = 
                                 <Icon className={`h-4 w-4 ${stat.iconClass}`} />
                             </div>
                             <span className="text-app text-xl font-bold">
-                                {stat.value}
+                                {typeof stat.value === 'number' ? stat.value : '—'}
                             </span>
                             <span className="text-app-muted text-[11px] font-semibold uppercase tracking-[0.12em]">
                                 {stat.label}

@@ -36,7 +36,12 @@ export default function ProfilePage() {
     const router = useRouter();
     const storedOAuthSession = githubApi.getStoredOAuthSession();
     const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
-    const { profile, isLoading: userLoading } = useUser();
+    const {
+        profile,
+        isLoading: userLoading,
+        isFetching: isProfileFetching,
+        isFetchedAfterMount,
+    } = useUser({ refetchOnMount: 'always' });
     
     // State for connected profiles - use null to indicate explicitly disconnected
     const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
@@ -49,7 +54,9 @@ export default function ProfilePage() {
     const [isRefreshingRepoOptions, setIsRefreshingRepoOptions] = useState(false);
     const [isPinnedStateHydrated, setIsPinnedStateHydrated] = useState(false);
     const [activatingProjectId, setActivatingProjectId] = useState<string | null>(null);
-    const [liveGithubStats, setLiveGithubStats] = useState<GitHubStatsType | null>(null);
+    const [liveGithubStats, setLiveGithubStats] = useState<GitHubStatsType | null>(
+        () => githubApi.getCachedStats(storedOAuthSession?.githubUsername || '') ?? null
+    );
     
     // Computed values: null means explicitly disconnected, undefined means use profile default
     const effectiveGithubUsername = githubUsername === null ? undefined : (githubUsername ?? profile?.githubUsername);
@@ -143,6 +150,11 @@ export default function ProfilePage() {
         if (!effectiveGithubUsername) {
             setLiveGithubStats(null);
             return;
+        }
+
+        const cachedStats = githubApi.getCachedStats(effectiveGithubUsername);
+        if (cachedStats) {
+            setLiveGithubStats(cachedStats);
         }
 
         let cancelled = false;
@@ -285,9 +297,17 @@ export default function ProfilePage() {
         }
     };
 
-    const overviewFollowers = Number(liveGithubStats?.user?.followers ?? profile?.followersCount ?? 0);
-    const overviewFollowing = Number(liveGithubStats?.user?.following ?? profile?.followingCount ?? 0);
+    const overviewFollowers = liveGithubStats?.user?.followers
+        ?? (profile?.followersCount > 0 ? Number(profile.followersCount) : null);
+    const overviewFollowing = liveGithubStats?.user?.following
+        ?? (profile?.followingCount > 0 ? Number(profile.followingCount) : null);
     const overviewProjects = totalProjectsCount;
+    const shouldDeferEmptySkills = Boolean(
+        profile &&
+        isProfileFetching &&
+        !isFetchedAfterMount &&
+        (profile.skills || []).length === 0
+    );
 
     if (userLoading) {
         return (
@@ -308,7 +328,7 @@ export default function ProfilePage() {
     return (
         <div className="space-y-6">
             <Breadcrumbs items={[{ label: 'Profile' }]} />
-            <ProfileHeader user={profile} isOwnProfile={true} />
+            <ProfileHeader user={profile} isOwnProfile={true} isSkillsLoading={shouldDeferEmptySkills} />
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <aside className="space-y-6 lg:col-span-1">

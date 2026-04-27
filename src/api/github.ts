@@ -45,8 +45,35 @@ export interface GitHubOAuthSession {
 }
 
 const GITHUB_OAUTH_STORAGE_KEY = 'github_oauth_session';
+const GITHUB_STATS_CACHE_PREFIX = 'github_stats_cache:v1:';
 
 const GITHUB_API = 'https://api.github.com';
+
+function normalizeCacheUsername(username: string): string {
+    return (username || '').trim().toLowerCase();
+}
+
+function loadCachedStats(username: string): GitHubStats | null {
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const raw = localStorage.getItem(`${GITHUB_STATS_CACHE_PREFIX}${normalizeCacheUsername(username)}`);
+        if (!raw) return null;
+        return JSON.parse(raw) as GitHubStats;
+    } catch {
+        return null;
+    }
+}
+
+function saveCachedStats(username: string, stats: GitHubStats) {
+    if (typeof window === 'undefined') return;
+
+    try {
+        localStorage.setItem(`${GITHUB_STATS_CACHE_PREFIX}${normalizeCacheUsername(username)}`, JSON.stringify(stats));
+    } catch {
+        // Ignore cache write failures.
+    }
+}
 
 export const githubApi = {
     getStoredOAuthSession(): GitHubOAuthSession | null {
@@ -104,6 +131,12 @@ export const githubApi = {
         return response.data?.data as GitHubStats;
     },
 
+    getCachedStats(username: string): GitHubStats | null {
+        const normalizedUsername = normalizeCacheUsername(username);
+        if (!normalizedUsername) return null;
+        return loadCachedStats(normalizedUsername);
+    },
+
     async getUser(username: string): Promise<GitHubUser> {
         const response = await axios.get(`${GITHUB_API}/users/${username}`);
         return response.data;
@@ -125,7 +158,9 @@ export const githubApi = {
 
             if (oauthSession?.sessionId) {
                 try {
-                    return await this.getAuthorizedStats(oauthSession.sessionId);
+                    const authorizedStats = await this.getAuthorizedStats(oauthSession.sessionId);
+                    saveCachedStats(username, authorizedStats);
+                    return authorizedStats;
                 } catch (error) {
                     const statusCode = (error as { response?: { status?: number } })?.response?.status;
 
@@ -169,7 +204,7 @@ export const githubApi = {
             // This is a rough estimate based on repo activity
             const contributionsThisYear = repos.length * 50; // Rough estimate
 
-            return {
+            const stats = {
                 user,
                 repos: user.public_repos,
                 totalStars,
@@ -178,8 +213,14 @@ export const githubApi = {
                 recentRepos,
                 contributionsThisYear,
             };
+            saveCachedStats(username, stats);
+            return stats;
         } catch (error) {
             console.error('Error fetching GitHub stats:', error);
+            const cached = loadCachedStats(username);
+            if (cached) {
+                return cached;
+            }
             throw error;
         }
     },

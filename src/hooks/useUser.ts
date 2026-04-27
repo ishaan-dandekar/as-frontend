@@ -6,18 +6,20 @@ import { User } from '@/types';
 
 type UseUserOptions = {
     enabled?: boolean;
+    refetchOnMount?: boolean | 'always';
 };
 
 export function useUser(options?: UseUserOptions) {
     const queryClient = useQueryClient();
 
-    const { data: profile, isLoading, error } = useQuery({
+    const { data: profile, isLoading, isFetching, isFetchedAfterMount, error } = useQuery({
         queryKey: ['profile'],
         queryFn: () => userApi.getProfile().then((res) => res.data),
         retry: false,
         enabled: options?.enabled ?? true,
         staleTime: 5 * 60 * 1000,
         gcTime: 15 * 60 * 1000,
+        refetchOnMount: options?.refetchOnMount ?? true,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
     });
@@ -32,6 +34,8 @@ export function useUser(options?: UseUserOptions) {
     return {
         profile,
         isLoading,
+        isFetching,
+        isFetchedAfterMount,
         error,
         updateProfile: updateProfileMutation.mutateAsync,
         isUpdating: updateProfileMutation.isPending,
