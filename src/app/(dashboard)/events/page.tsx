@@ -8,11 +8,14 @@ import { eventApi } from '@/api/event';
 import { Event } from '@/types';
 import { EventCard } from '@/components/events/EventCard';
 import { Spinner } from '@/components/ui/Spinner';
-import { Search, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Code2, BookOpen, Users, Clock3, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/hooks/useUser';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Badge } from '@/components/ui/Badge';
 
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
@@ -30,6 +33,32 @@ const itemVariants = {
     hidden: { opacity: 0, y: 12 },
     visible: { opacity: 1, y: 0 }
 };
+
+const EVENT_TYPE_OPTIONS: Array<{
+    value: Event['type'];
+    label: string;
+    description: string;
+    icon: typeof Code2;
+}> = [
+    {
+        value: 'WORKSHOP',
+        label: 'Workshop',
+        description: 'Hands-on sessions for teaching, demos, and guided practice.',
+        icon: BookOpen,
+    },
+    {
+        value: 'HACKATHON',
+        label: 'Hackathon',
+        description: 'Build-focused competitions with teams, judging, and deadlines.',
+        icon: Code2,
+    },
+    {
+        value: 'MEETUP',
+        label: 'Meetup',
+        description: 'Community sessions for orientation, talks, networking, or panels.',
+        icon: Users,
+    },
+];
 
 const useCountUp = (value: number, duration = 700) => {
     const [current, setCurrent] = useState(0);
@@ -58,10 +87,12 @@ export default function EventsPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { profile } = useUser();
+    const canManageEvents = profile?.role === 'ADMIN' || profile?.role === 'DEPARTMENT';
     const [activeTab, setActiveTab] = useState('upcoming');
     const [searchQuery, setSearchQuery] = useState('');
     const [showHostForm, setShowHostForm] = useState(false);
     const [hostForm, setHostForm] = useState({
+        type: 'WORKSHOP' as Event['type'],
         title: '',
         description: '',
         location: '',
@@ -128,7 +159,7 @@ export default function EventsPage() {
     };
 
     const handlePublishEvent = () => {
-        const { title, description, location, startDate, endDate } = hostForm;
+        const { title, description, location, startDate, endDate, capacity } = hostForm;
 
         if (!title || !description || !location || !startDate || !endDate) {
             setHostError('Please fill all fields before publishing the event.');
@@ -140,11 +171,17 @@ export default function EventsPage() {
             return;
         }
 
+        if (!Number.isFinite(Number(capacity)) || Number(capacity) < 1) {
+            setHostError('Capacity must be at least 1.');
+            return;
+        }
+
         createEventMutation.mutate();
     };
 
     const createEventMutation = useMutation({
         mutationFn: () => eventApi.createEvent({
+            type: hostForm.type,
             title: hostForm.title.trim(),
             description: hostForm.description.trim(),
             location: hostForm.location.trim(),
@@ -156,6 +193,7 @@ export default function EventsPage() {
             setHostError(null);
             setShowHostForm(false);
             setHostForm({
+                type: 'WORKSHOP',
                 title: '',
                 description: '',
                 location: '',
@@ -214,6 +252,7 @@ export default function EventsPage() {
     const animatedUpcoming = useCountUp(upcomingCount);
     const animatedHackathon = useCountUp(hackathonCount);
     const animatedWorkshop = useCountUp(workshopCount);
+    const selectedHostType = EVENT_TYPE_OPTIONS.find((option) => option.value === hostForm.type) || EVENT_TYPE_OPTIONS[0];
 
     const featuredEvent = useMemo(() => {
         if (!events.length) return null;
@@ -253,7 +292,7 @@ export default function EventsPage() {
                     <h1 className="text-3xl font-bold text-slate-900">Campus Events</h1>
                     <p className="text-slate-500">Discover hackathons, workshops, and orientation sessions.</p>
                 </div>
-                {profile?.role === 'ADMIN' && (
+                {canManageEvents && (
                     <Button onClick={() => setShowHostForm((prev) => !prev)}>
                         {showHostForm ? 'Cancel Hosting' : 'Host Event'}
                     </Button>
@@ -319,68 +358,157 @@ export default function EventsPage() {
                 </div>
             </motion.div>
 
-            {profile?.role === 'ADMIN' && showHostForm && (
+            {canManageEvents && showHostForm && (
                 <motion.div
-                    className="surface-elevated space-y-3 rounded-2xl p-4"
+                    className="surface-elevated rounded-[30px] p-5 sm:p-7"
                     variants={itemVariants}
                 >
-                    <h3 className="text-app text-lg font-semibold">Host a New Event</h3>
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-app text-2xl font-semibold">Create an Event</h3>
+                                <Badge variant="outline" className="rounded-full border-app bg-surface px-3 py-1 text-app-soft font-medium">
+                                    Host tools
+                                </Badge>
+                            </div>
+                            <p className="text-app-soft mt-2 max-w-2xl text-sm leading-6">
+                                Set the event format first, then fill in the logistics. The selected type now persists and powers the workshop and hackathon counts automatically.
+                            </p>
+                        </div>
+
+                        <div className="rounded-[22px] border border-app bg-surface-strong px-4 py-3 text-sm">
+                            <p className="text-app font-semibold">{selectedHostType.label}</p>
+                            <p className="text-app-soft mt-1 max-w-xs">{selectedHostType.description}</p>
+                        </div>
+                    </div>
 
                     {hostError && (
-                        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                             {hostError}
                         </div>
                     )}
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <input
-                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400"
-                            placeholder="Event title"
-                            value={hostForm.title}
-                            onChange={(e) => setHostForm((prev) => ({ ...prev, title: e.target.value }))}
-                        />
-                        <input
-                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400"
-                            placeholder="Location"
-                            value={hostForm.location}
-                            onChange={(e) => setHostForm((prev) => ({ ...prev, location: e.target.value }))}
-                        />
-                        <input
-                            type="datetime-local"
-                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900"
-                            value={hostForm.startDate}
-                            onChange={(e) => setHostForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                        />
-                        <input
-                            type="datetime-local"
-                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900"
-                            value={hostForm.endDate}
-                            onChange={(e) => setHostForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                        />
+                    <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                        <div className="space-y-5">
+                            <div>
+                                <p className="text-app mb-3 text-sm font-medium">Event format</p>
+                                <div className="grid gap-3 md:grid-cols-3">
+                                    {EVENT_TYPE_OPTIONS.map((option) => {
+                                        const Icon = option.icon;
+                                        const isActive = hostForm.type === option.value;
+
+                                        return (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => setHostForm((prev) => ({ ...prev, type: option.value }))}
+                                                className={cn(
+                                                    'rounded-[22px] border p-4 text-left transition-all duration-200',
+                                                    isActive
+                                                        ? 'border-[color:var(--brand)] bg-[color:var(--brand-soft)]/70 shadow-soft'
+                                                        : 'border-app bg-surface hover:border-app-strong hover:bg-surface-strong'
+                                                )}
+                                            >
+                                                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-[color:var(--brand-strong)]">
+                                                    <Icon className="h-5 w-5" />
+                                                </div>
+                                                <p className="text-app font-semibold">{option.label}</p>
+                                                <p className="text-app-soft mt-1 text-sm leading-5">{option.description}</p>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <Input
+                                label="Event title"
+                                placeholder="Example: APSIT AI Build Workshop"
+                                value={hostForm.title}
+                                onChange={(e) => setHostForm((prev) => ({ ...prev, title: e.target.value }))}
+                            />
+
+                            <Textarea
+                                placeholder="Describe what attendees will build, learn, or experience. Mention the audience, agenda, and expected outcome."
+                                value={hostForm.description}
+                                onChange={(e) => setHostForm((prev) => ({ ...prev, description: e.target.value }))}
+                                maxLength={600}
+                                showCount
+                                className="min-h-[180px]"
+                            />
+                        </div>
+
+                        <div className="rounded-[28px] border border-app bg-surface-strong p-5">
+                            <div className="mb-5">
+                                <h4 className="text-app text-lg font-semibold">Logistics</h4>
+                                <p className="text-app-soft mt-1 text-sm leading-6">
+                                    Keep the operational details tight so students know when to show up and how many seats are available.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Input
+                                    label="Location"
+                                    placeholder="Seminar Hall 1, Innovation Lab, or Online"
+                                    value={hostForm.location}
+                                    onChange={(e) => setHostForm((prev) => ({ ...prev, location: e.target.value }))}
+                                    icon={<MapPin className="h-4 w-4" />}
+                                />
+                                <Input
+                                    label="Start time"
+                                    type="datetime-local"
+                                    value={hostForm.startDate}
+                                    onChange={(e) => setHostForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                                    icon={<Clock3 className="h-4 w-4" />}
+                                />
+                                <Input
+                                    label="End time"
+                                    type="datetime-local"
+                                    value={hostForm.endDate}
+                                    onChange={(e) => setHostForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                                    icon={<Clock3 className="h-4 w-4" />}
+                                />
+                                <Input
+                                    label="Capacity"
+                                    type="number"
+                                    min={1}
+                                    value={hostForm.capacity}
+                                    onChange={(e) => setHostForm((prev) => ({ ...prev, capacity: e.target.value }))}
+                                    icon={<Users className="h-4 w-4" />}
+                                    helperText="This is used for registration limits and progress tracking."
+                                />
+                            </div>
+
+                            <div className="mt-5 rounded-[22px] border border-app bg-surface p-4">
+                                <p className="text-app text-sm font-semibold">Preview</p>
+                                <div className="mt-3 space-y-2 text-sm">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-app-soft">Format</span>
+                                        <span className="text-app font-medium">{selectedHostType.label}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-app-soft">Venue</span>
+                                        <span className="text-app text-right font-medium">{hostForm.location || 'To be announced'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-app-soft">Seats</span>
+                                        <span className="text-app font-medium">{hostForm.capacity || '0'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <textarea
-                        className="w-full min-h-[96px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400"
-                        placeholder="Event description"
-                        value={hostForm.description}
-                        onChange={(e) => setHostForm((prev) => ({ ...prev, description: e.target.value }))}
-                    />
-
-                    <div className="flex items-center justify-between">
-                        <input
-                            type="number"
-                            min={1}
-                            className="h-10 w-32 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400"
-                            placeholder="Capacity"
-                            value={hostForm.capacity}
-                            onChange={(e) => setHostForm((prev) => ({ ...prev, capacity: e.target.value }))}
-                        />
+                    <div className="mt-6 flex flex-col gap-3 border-t border-app pt-5 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-app-soft text-sm">
+                            Publishing now will immediately update the event feed and the workshop/hackathon counters.
+                        </p>
                         <Button
                             onClick={handlePublishEvent}
                             isLoading={createEventMutation.isPending}
                             disabled={createEventMutation.isPending}
+                            className="sm:min-w-[180px]"
                         >
-                            Publish Event
+                            Publish {selectedHostType.label}
                         </Button>
                     </div>
                 </motion.div>

@@ -35,7 +35,6 @@ const LeetCodeStats = dynamic(
 export default function ProfilePage() {
     const router = useRouter();
     const storedOAuthSession = githubApi.getStoredOAuthSession();
-    const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
     const {
         profile,
         isLoading: userLoading,
@@ -45,7 +44,7 @@ export default function ProfilePage() {
     
     // State for connected profiles - use null to indicate explicitly disconnected
     const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
-    const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(storedLeetCodeUsername || undefined);
+    const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(undefined);
     const [allGithubRepos, setAllGithubRepos] = useState<GitHubRepo[]>([]);
     const [isGithubShowcaseLoading, setIsGithubShowcaseLoading] = useState(false);
     const [pinnedRepoIds, setPinnedRepoIds] = useState<string[]>([]);
@@ -137,14 +136,24 @@ export default function ProfilePage() {
     }, []);
 
     useEffect(() => {
-        if (!profile?.leetCodeUrl) return;
+        if (!profile?.id) return;
 
-        const normalized = leetcodeApi.normalizeUsername(profile.leetCodeUrl);
-        if (!normalized) return;
+        const normalizedFromProfile = leetcodeApi.normalizeUsername(profile.leetCodeUrl || '');
+        const normalizedFromStorage = leetcodeApi.getStoredUsername(profile.id);
+        const nextUsername = normalizedFromProfile || normalizedFromStorage || null;
 
-        setLeetCodeUsername((prev) => prev ?? normalized);
-        leetcodeApi.setStoredUsername(normalized);
-    }, [profile?.leetCodeUrl]);
+        setLeetCodeUsername((prev) => {
+            if (prev === nextUsername) return prev;
+            return nextUsername;
+        });
+
+        if (normalizedFromProfile) {
+            leetcodeApi.setStoredUsername(normalizedFromProfile, profile.id);
+        } else {
+            leetcodeApi.clearStoredUsername(profile.id);
+        }
+        leetcodeApi.clearLegacyStoredUsername();
+    }, [profile?.id, profile?.leetCodeUrl]);
 
     useEffect(() => {
         if (!effectiveGithubUsername) {

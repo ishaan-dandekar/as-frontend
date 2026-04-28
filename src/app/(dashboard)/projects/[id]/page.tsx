@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectApi } from '@/api/project';
 import { teamApi } from '@/api/team';
-import { TeamMember } from '@/types';
+import { Project, TeamMember } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { formatDate } from '@/lib/utils';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 
@@ -40,6 +40,7 @@ export default function ProjectDetailPage() {
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
     const [isJoiningProject, setIsJoiningProject] = useState(false);
     const [joinFeedback, setJoinFeedback] = useState<string | null>(null);
+    const [localJoinState, setLocalJoinState] = useState<Project['joinState'] | null>(null);
 
     const { data: projectRes, isLoading: isProjectLoading } = useQuery({
         queryKey: ['project', id],
@@ -55,6 +56,7 @@ export default function ProjectDetailPage() {
     const project = projectRes?.data;
     const team = teamRes?.data;
     const isOwner = profile?.id === project?.ownerId;
+    const effectiveJoinState = localJoinState || project?.joinState || 'IDLE';
     const teamMemberCount = team?.members.length || project?.teamMemberCount || 0;
     const teamCapacity = team?.capacity || project?.teamCapacity || 4;
     const openSeats = Math.max(teamCapacity - teamMemberCount, 0);
@@ -84,6 +86,11 @@ export default function ProjectDetailPage() {
         return items.filter((item) => item.project_id === id && item.status === 'PENDING');
     }, [id, joinRequestsRes?.data?.items]);
 
+    useEffect(() => {
+        if (!project?.joinState) return;
+        setLocalJoinState(null);
+    }, [project?.joinState]);
+
     const handleRespondJoinRequest = (requestId: string, action: 'ACCEPT' | 'REJECT') => {
         if (respondingRequestId) return;
         setRespondingRequestId(requestId);
@@ -97,9 +104,16 @@ export default function ProjectDetailPage() {
         try {
             const response = await projectApi.requestToJoinProject(id);
             setJoinFeedback(response.message || 'Join request sent successfully.');
+            setLocalJoinState('REQUEST_PENDING');
+            queryClient.invalidateQueries({ queryKey: ['project', id] });
+            queryClient.invalidateQueries({ queryKey: ['projects'] });
         } catch (error: unknown) {
             const apiError = error as { response?: { data?: { message?: string } } };
-            setJoinFeedback(apiError.response?.data?.message || 'Failed to send join request.');
+            const message = apiError.response?.data?.message || 'Failed to send join request.';
+            setJoinFeedback(message);
+            if (message.toLowerCase().includes('already submitted')) {
+                setLocalJoinState('REQUEST_PENDING');
+            }
         } finally {
             setIsJoiningProject(false);
         }
@@ -262,10 +276,20 @@ export default function ProjectDetailPage() {
 
                             {!isOwner ? (
                                 <div className="space-y-3">
-                                    <Button className="w-full gap-2" variant="primary" onClick={handleJoinProject} disabled={isJoiningProject}>
-                                        Join Project
-                                        <ChevronRight className="h-4 w-4" />
-                                    </Button>
+                                    {effectiveJoinState === 'JOINED' ? (
+                                        <Button className="w-full gap-2" variant="secondary" disabled>
+                                            Already Joined
+                                        </Button>
+                                    ) : effectiveJoinState === 'REQUEST_PENDING' ? (
+                                        <Button className="w-full gap-2" variant="outline" disabled>
+                                            Request Sent
+                                        </Button>
+                                    ) : (
+                                        <Button className="w-full gap-2" variant="primary" onClick={handleJoinProject} disabled={isJoiningProject}>
+                                            {isJoiningProject ? 'Sending...' : 'Join Project'}
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                     {joinFeedback ? (
                                         <p className="text-app-soft text-xs">{joinFeedback}</p>
                                     ) : null}

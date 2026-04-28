@@ -30,7 +30,6 @@ const statusWeight: Record<Project['status'], number> = {
 export default function DiscoverUserDetailPage() {
     const params = useParams();
     const { profile: currentProfile } = useUser();
-    const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
     const [profile, setProfile] = useState<User | null>(null);
     const [projects, setProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +43,7 @@ export default function DiscoverUserDetailPage() {
     const isCurrentUser = Boolean(currentProfile?.id && profile?.id && currentProfile.id === profile.id);
     const effectiveGithubUsername = (profile?.githubUsername || '').trim();
     const effectiveLeetCodeUsername = leetcodeApi.normalizeUsername(
-        profile?.leetCodeUrl || (isCurrentUser ? storedLeetCodeUsername || '' : '')
+        profile?.leetCodeUrl || (isCurrentUser && currentProfile?.id ? leetcodeApi.getStoredUsername(currentProfile.id) || '' : '')
     );
 
     useEffect(() => {

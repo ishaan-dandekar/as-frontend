@@ -9,6 +9,7 @@ type CreateEventPayload = {
     location: string;
     start_date: string;
     end_date: string;
+    type: Event['type'];
     capacity?: number;
     image_url?: string;
     tags?: string[];
@@ -249,6 +250,14 @@ export const eventApi = {
     },
     createEvent: async (eventData: CreateEventPayload): Promise<APIResponse<Event>> => {
         const response = await api.post<APIResponse<BackendEvent>>('/events/', eventData);
+        return {
+            ...response.data,
+            data: mapBackendEvent(response.data.data),
+        };
+    },
+
+    updateEvent: async (id: string, eventData: Partial<CreateEventPayload>): Promise<APIResponse<Event>> => {
+        const response = await api.patch<APIResponse<BackendEvent>>(`/events/${id}/`, eventData);
         return {
             ...response.data,
             data: mapBackendEvent(response.data.data),

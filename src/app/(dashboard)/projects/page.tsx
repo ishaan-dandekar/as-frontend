@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/Select';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { useQueryClient } from '@tanstack/react-query';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -28,6 +29,7 @@ const containerVariants = {
 
 export default function ProjectFeedPage() {
     const { profile } = useUser();
+    const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [tech, setTech] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState<'ALL' | Project['status']>('ALL');
@@ -52,6 +54,7 @@ export default function ProjectFeedPage() {
     );
 
     const profileId = profile?.id;
+
     const sortedProjects = useMemo(
         () =>
             [...validProjects]
@@ -97,10 +100,15 @@ export default function ProjectFeedPage() {
             const successMessage = response.message || 'Request sent successfully.';
             setRequestStateMap((prev) => ({ ...prev, [projectId]: 'sent' }));
             setRequestMessage(successMessage);
+            queryClient.invalidateQueries({ queryKey: ['projects'] });
         } catch (error: unknown) {
             const apiError = error as { response?: { data?: { message?: string } } };
             const message = apiError.response?.data?.message || 'Failed to send request. Please try again.';
-            setRequestStateMap((prev) => ({ ...prev, [projectId]: 'error' }));
+            if (message.toLowerCase().includes('already submitted')) {
+                setRequestStateMap((prev) => ({ ...prev, [projectId]: 'sent' }));
+            } else {
+                setRequestStateMap((prev) => ({ ...prev, [projectId]: 'error' }));
+            }
             setRequestMessage(message);
         }
     };
@@ -234,20 +242,35 @@ export default function ProjectFeedPage() {
                         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     >
                         {sortedProjects.map((project) => (
+                            (() => {
+                                const alreadyJoined = project.joinState === 'JOINED';
+                                const hasPendingRequest = project.joinState === 'REQUEST_PENDING';
+                                const isRequestSent = requestStateMap[project.id] === 'sent';
+                                const isRequestLoading = requestStateMap[project.id] === 'loading';
+
+                                return (
                             <ProjectCard
                                 key={project.id}
                                 project={project}
                                 onBookmark={bookmarkProject}
-                                onRequestToJoin={project.ownerId === profileId ? undefined : handleRequestToJoin}
-                                disableRequestButton={requestStateMap[project.id] === 'loading' || requestStateMap[project.id] === 'sent'}
+                                onRequestToJoin={
+                                    project.ownerId === profileId || alreadyJoined || hasPendingRequest
+                                        ? undefined
+                                        : handleRequestToJoin
+                                }
+                                disableRequestButton={isRequestLoading || isRequestSent || hasPendingRequest || alreadyJoined}
                                 requestButtonLabel={
-                                    requestStateMap[project.id] === 'loading'
+                                    alreadyJoined
+                                        ? 'Already Joined'
+                                        : hasPendingRequest || isRequestSent
+                                        ? 'Request Sent'
+                                        : isRequestLoading
                                         ? 'Sending...'
-                                        : requestStateMap[project.id] === 'sent'
-                                            ? 'Request Sent'
                                             : 'Request to Work'
                                 }
                             />
+                                );
+                            })()
                         ))}
                     </motion.div>
 

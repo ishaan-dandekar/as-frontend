@@ -32,6 +32,8 @@ export function ProjectCard({
     onToggleActive,
     isToggleActiveLoading,
 }: ProjectCardProps) {
+    const shouldShowRequestButton = Boolean(onRequestToJoin || requestButtonLabel);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -142,10 +144,10 @@ export function ProjectCard({
                             )
                         )}
 
-                        {onRequestToJoin && (
+                        {shouldShowRequestButton && (
                             <button
                                 type="button"
-                                onClick={() => onRequestToJoin(project.id)}
+                                onClick={() => onRequestToJoin?.(project.id)}
                                 disabled={disableRequestButton}
                                 className="mt-1 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >

@@ -54,6 +54,7 @@ export default function TeamsPage() {
     const [createSuccess, setCreateSuccess] = useState<string | null>(null);
     const [joinFeedback, setJoinFeedback] = useState<string | null>(null);
     const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+    const [requestedTeamIds, setRequestedTeamIds] = useState<string[]>([]);
     const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null);
     const [teamSearch, setTeamSearch] = useState('');
     const deferredTeamSearch = useDeferredValue(teamSearch);
@@ -125,6 +126,10 @@ export default function TeamsPage() {
     const teams = useMemo(() => (teamsRes?.data || []) as Team[], [teamsRes?.data]);
     const discoverTeams = useMemo(() => (discoverRes?.data || []) as Team[], [discoverRes?.data]);
     const incomingRequests = incomingRequestsRes?.data?.items || [];
+    const standaloneTeams = useMemo(
+        () => teams.filter((team) => !team.projectId),
+        [teams]
+    );
     const normalizedTeamSearch = deferredTeamSearch.trim().toLowerCase();
 
     const filteredDiscoverTeams = useMemo(() => {
@@ -179,10 +184,16 @@ export default function TeamsPage() {
         try {
             const response = await teamApi.requestToJoinTeam(teamId);
             setJoinFeedback(response.message || 'Join request sent successfully.');
+            setRequestedTeamIds((prev) => (prev.includes(teamId) ? prev : [...prev, teamId]));
             queryClient.invalidateQueries({ queryKey: ['discover-teams'] });
         } catch (requestError: unknown) {
             const apiError = requestError as { response?: { data?: { message?: string } } };
-            setJoinFeedback(apiError.response?.data?.message || 'Failed to send join request.');
+            const message = apiError.response?.data?.message || 'Failed to send join request.';
+            setJoinFeedback(message);
+
+            if (message.toLowerCase().includes('already exists')) {
+                setRequestedTeamIds((prev) => (prev.includes(teamId) ? prev : [...prev, teamId]));
+            }
         } finally {
             setJoiningTeamId(null);
         }
@@ -214,7 +225,7 @@ export default function TeamsPage() {
                             {showCreateForm ? 'Close Form' : 'Create Team'}
                         </Button>
                         <p className="text-app-muted text-sm">
-                            {teams.length > 0 ? `${teams.length} team${teams.length === 1 ? '' : 's'} in your workspace` : 'Start with a small focused team'}
+                            {standaloneTeams.length > 0 ? `${standaloneTeams.length} team${standaloneTeams.length === 1 ? '' : 's'} in your workspace` : 'Start with a small focused team'}
                         </p>
                     </div>
                 </div>
@@ -222,7 +233,7 @@ export default function TeamsPage() {
                 <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <SummaryCard
                         label="Your teams"
-                        value={teams.length}
+                        value={standaloneTeams.length}
                         helper="Teams you own or belong to"
                         icon={Users}
                     />
@@ -308,7 +319,7 @@ export default function TeamsPage() {
                             <h2 className="text-app text-2xl font-semibold">Your Teams</h2>
                             <p className="text-app-soft mt-1 text-sm leading-6">Open a group to manage members, capacity, and project context without jumping between screens.</p>
                         </div>
-                        <Badge variant="secondary" className="bg-surface-strong px-3 py-1 text-app">{teams.length}</Badge>
+                        <Badge variant="secondary" className="bg-surface-strong px-3 py-1 text-app">{standaloneTeams.length}</Badge>
                     </div>
 
                     {isLoading ? (
@@ -320,17 +331,17 @@ export default function TeamsPage() {
                             <h3 className="text-lg font-semibold">Unable to load teams</h3>
                             <p className="mt-1 text-sm">Please sign in from the landing page or try again in a moment.</p>
                         </div>
-                    ) : teams.length === 0 ? (
+                    ) : standaloneTeams.length === 0 ? (
                         <div className="rounded-2xl border border-dashed border-app bg-surface-strong p-10 text-center">
                             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]">
                                 <Users className="h-6 w-6" />
                             </div>
-                            <h3 className="text-app text-lg font-semibold">No teams yet</h3>
-                            <p className="text-app-soft mt-2 text-sm">Create your first team or browse discoverable teams below to get started.</p>
+                            <h3 className="text-app text-lg font-semibold">No standalone teams yet</h3>
+                            <p className="text-app-soft mt-2 text-sm">Create your first team or browse discoverable teams below to get started. Project-specific teams are managed from their project pages.</p>
                         </div>
                     ) : (
                         <div className="grid gap-4 lg:grid-cols-2">
-                            {teams.map((team) => (
+                            {standaloneTeams.map((team) => (
                                 <button
                                     key={team.id}
                                     type="button"
@@ -491,14 +502,32 @@ export default function TeamsPage() {
                                     <div className="text-app-soft text-sm">
                                         {team.teamMemberCount || team.members.length} members
                                     </div>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => handleJoinTeam(team.id)}
-                                        isLoading={joiningTeamId === team.id}
-                                        disabled={joiningTeamId !== null && joiningTeamId !== team.id}
-                                    >
-                                        Request to Join
-                                    </Button>
+                                    {team.joinState === 'JOINED' ? (
+                                        <Button
+                                            variant="secondary"
+                                            disabled
+                                            className="cursor-default bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200"
+                                        >
+                                            Already Joined
+                                        </Button>
+                                    ) : team.joinState === 'REQUEST_PENDING' || requestedTeamIds.includes(team.id) ? (
+                                        <Button
+                                            variant="secondary"
+                                            disabled
+                                            className="cursor-default bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-200"
+                                        >
+                                            Request Sent
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => handleJoinTeam(team.id)}
+                                            isLoading={joiningTeamId === team.id}
+                                            disabled={joiningTeamId !== null && joiningTeamId !== team.id}
+                                        >
+                                            Request to Join
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         ))}

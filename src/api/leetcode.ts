@@ -58,27 +58,39 @@ function saveCachedStats(username: string, stats: LeetCodeFullStats) {
     }
 }
 
+function getScopedStorageKey(scope?: string | null): string {
+    const normalizedScope = (scope || '').trim();
+    return normalizedScope
+        ? `${LEETCODE_USERNAME_STORAGE_KEY}:${normalizedScope}`
+        : LEETCODE_USERNAME_STORAGE_KEY;
+}
+
 export const leetcodeApi = {
     normalizeUsername(input: string): string {
         return normalizeLeetCodeUsername(input);
     },
 
-    getStoredUsername(): string | null {
+    getStoredUsername(scope?: string | null): string | null {
         if (typeof window === 'undefined') return null;
-        const raw = localStorage.getItem(LEETCODE_USERNAME_STORAGE_KEY);
+        const raw = localStorage.getItem(getScopedStorageKey(scope));
         if (!raw) return null;
         const normalized = normalizeLeetCodeUsername(raw);
         return normalized || null;
     },
 
-    setStoredUsername(username: string) {
+    setStoredUsername(username: string, scope?: string | null) {
         if (typeof window === 'undefined') return;
         const normalized = normalizeLeetCodeUsername(username);
         if (!normalized) return;
-        localStorage.setItem(LEETCODE_USERNAME_STORAGE_KEY, normalized);
+        localStorage.setItem(getScopedStorageKey(scope), normalized);
     },
 
-    clearStoredUsername() {
+    clearStoredUsername(scope?: string | null) {
+        if (typeof window === 'undefined') return;
+        localStorage.removeItem(getScopedStorageKey(scope));
+    },
+
+    clearLegacyStoredUsername() {
         if (typeof window === 'undefined') return;
         localStorage.removeItem(LEETCODE_USERNAME_STORAGE_KEY);
     },
@@ -96,7 +108,6 @@ export const leetcodeApi = {
 
             const result = response.data as LeetCodeFullStats;
 
-            this.setStoredUsername(normalizedUsername);
             saveCachedStats(normalizedUsername, result);
             return result;
 

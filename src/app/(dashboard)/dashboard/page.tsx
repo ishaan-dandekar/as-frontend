@@ -35,9 +35,10 @@ export default function DashboardPage() {
     const { projects, isLoading: projectsLoading } = useProjects();
     const { profile } = useUser();
     const oauthSession = githubApi.getStoredOAuthSession();
-    const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
     const effectiveGithubUsername = profile?.githubUsername || oauthSession?.githubUsername;
-    const effectiveLeetCodeUsername = leetcodeApi.normalizeUsername(profile?.leetCodeUrl || storedLeetCodeUsername || '');
+    const effectiveLeetCodeUsername = leetcodeApi.normalizeUsername(
+        profile?.leetCodeUrl || (profile?.id ? leetcodeApi.getStoredUsername(profile.id) || '' : '')
+    );
     const { unreadCount } = useNotifications();
     const [joinRequests, setJoinRequests] = useState<ProjectJoinRequestItem[]>([]);
     const [joinRequestLoading, setJoinRequestLoading] = useState(true);
@@ -240,6 +241,10 @@ export default function DashboardPage() {
 
     const pendingJoinRequests = joinRequests.filter((item) => item.status === 'PENDING');
     const displayedProjectJoinRequests = pendingJoinRequests;
+    const standaloneTeams = useMemo(
+        () => teams.filter((team) => !team.projectId),
+        [teams]
+    );
 
     const respondJoinRequest = async (requestId: string, action: 'ACCEPT' | 'REJECT') => {
         try {
@@ -557,13 +562,13 @@ export default function DashboardPage() {
                         <div className="flex h-36 items-center justify-center">
                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                         </div>
-                    ) : teams.length === 0 ? (
+                    ) : standaloneTeams.length === 0 ? (
                         <div className="text-app-soft flex h-36 items-center justify-center rounded-2xl border border-app border-dashed bg-surface-strong text-sm">
-                            You have not joined any teams yet.
+                            No standalone teams yet. Project-specific teams are managed from their project pages.
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {teams.slice(0, 4).map((team) => {
+                            {standaloneTeams.slice(0, 4).map((team) => {
                                 const membersCount = team.members?.length || team.teamMemberCount || 0;
                                 const capacity = team.capacity || team.teamCapacity || 0;
                                 return (

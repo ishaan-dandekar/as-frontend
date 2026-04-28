@@ -28,6 +28,7 @@ export default function EventDetailPage() {
     const queryClient = useQueryClient();
     const id = params.id as string;
     const { profile } = useUser();
+    const canManageEvents = profile?.role === 'ADMIN' || profile?.role === 'DEPARTMENT';
 
     const { data: eventRes, isLoading } = useQuery({
         queryKey: ['event', id],
@@ -36,7 +37,7 @@ export default function EventDetailPage() {
 
     const event = eventRes?.data;
     const canDeleteEvent = Boolean(
-        profile?.role === 'ADMIN' &&
+        canManageEvents &&
         profile?.id &&
         event?.organizerId &&
         profile.id === event.organizerId

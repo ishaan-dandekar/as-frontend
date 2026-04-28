@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --webpack",
+    "dev:lan": "NEXT_TELEMETRY_DISABLED=1 next dev --hostname 0.0.0.0 --port 3000 --webpack",
     "dev:turbo": "NEXT_TELEMETRY_DISABLED=1 next dev",
     "build": "next build --webpack",
     "start": "next start",

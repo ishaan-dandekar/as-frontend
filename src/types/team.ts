@@ -9,6 +9,8 @@ export interface TeamMember {
     email: string;
 }
 
+export type TeamJoinState = 'IDLE' | 'REQUEST_PENDING' | 'JOINED' | 'OWNER';
+
 export interface Team {
     id: string;
     ownerId?: string;
@@ -20,6 +22,7 @@ export interface Team {
     capacity: number;
     teamMemberCount?: number;
     teamCapacity?: number;
+    joinState?: TeamJoinState;
 }
 
 export type JoinRequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';

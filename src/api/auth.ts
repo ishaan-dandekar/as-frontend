@@ -1,5 +1,6 @@
 import api from '@/lib/axios';
 import { setAvatarSyncVersionNow, withAvatarSyncVersion } from '@/lib/avatarUrl';
+import { leetcodeApi } from '@/api/leetcode';
 
 type BackendUser = {
     id: string;
@@ -122,6 +123,7 @@ export const authApi = {
         localStorage.removeItem('userRole');
         localStorage.removeItem('google_oauth_result');
         localStorage.removeItem('avatarSyncVersion');
+        leetcodeApi.clearLegacyStoredUsername();
     },
 
     /**

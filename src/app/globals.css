@@ -250,10 +250,40 @@ body {
     box-shadow: 0 10px 20px -16px rgba(20, 184, 166, 0.7);
   }
 
+  .skill-chip-selected {
+    background: #d9f2ea;
+    color: #0f5a50;
+    border: 1px solid rgba(31, 111, 100, 0.18);
+  }
+
+  .skill-chip-selected:hover {
+    background: #c8eadf;
+    color: #0b4a42;
+  }
+
+  .skill-chip-selected svg {
+    color: #0f5a50;
+  }
+
   [data-theme='dark'] .eyebrow-badge {
     background: linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(45, 212, 191, 0.12));
     border: 1px solid rgba(94, 234, 212, 0.24);
     color: #99f6e4;
+  }
+
+  [data-theme='dark'] .skill-chip-selected {
+    background: rgba(47, 157, 143, 0.18);
+    color: #b7f4ea;
+    border: 1px solid rgba(94, 234, 212, 0.2);
+  }
+
+  [data-theme='dark'] .skill-chip-selected:hover {
+    background: rgba(47, 157, 143, 0.26);
+    color: #d7fff8;
+  }
+
+  [data-theme='dark'] .skill-chip-selected svg {
+    color: #b7f4ea;
   }
 
   .spotlight-card {

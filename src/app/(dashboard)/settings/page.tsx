@@ -26,11 +26,10 @@ const ProfileIntegrations = dynamic(
 export default function SettingsPage() {
     const { profile, isLoading, updateProfile, isUpdating } = useUser();
     const storedOAuthSession = githubApi.getStoredOAuthSession();
-    const storedLeetCodeUsername = leetcodeApi.getStoredUsername();
 
     const [bio, setBio] = useState('');
     const [githubUsername, setGithubUsername] = useState<string | null | undefined>(storedOAuthSession?.githubUsername || undefined);
-    const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(storedLeetCodeUsername || undefined);
+    const [leetCodeUsername, setLeetCodeUsername] = useState<string | null | undefined>(undefined);
     const [skills, setSkills] = useState<string[]>([]);
     const [skillInput, setSkillInput] = useState('');
     const [skillSearch, setSkillSearch] = useState('');
@@ -47,12 +46,24 @@ export default function SettingsPage() {
     }, [profile]);
 
     useEffect(() => {
-        if (!profile?.leetCodeUrl) return;
-        const normalized = leetcodeApi.normalizeUsername(profile.leetCodeUrl);
-        if (!normalized) return;
-        setLeetCodeUsername((prev) => prev ?? normalized);
-        leetcodeApi.setStoredUsername(normalized);
-    }, [profile?.leetCodeUrl]);
+        if (!profile?.id) return;
+
+        const normalizedFromProfile = leetcodeApi.normalizeUsername(profile.leetCodeUrl || '');
+        const normalizedFromStorage = leetcodeApi.getStoredUsername(profile.id);
+        const nextUsername = normalizedFromProfile || normalizedFromStorage || null;
+
+        setLeetCodeUsername((prev) => {
+            if (prev === nextUsername) return prev;
+            return nextUsername;
+        });
+
+        if (normalizedFromProfile) {
+            leetcodeApi.setStoredUsername(normalizedFromProfile, profile.id);
+        } else {
+            leetcodeApi.clearStoredUsername(profile.id);
+        }
+        leetcodeApi.clearLegacyStoredUsername();
+    }, [profile?.id, profile?.leetCodeUrl]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -175,11 +186,11 @@ export default function SettingsPage() {
     const handleLeetCodeConnect = useCallback((username: string) => {
         const normalized = leetcodeApi.normalizeUsername(username);
         setLeetCodeUsername((prev) => (prev === normalized ? prev : normalized));
-        leetcodeApi.setStoredUsername(normalized);
+        leetcodeApi.setStoredUsername(normalized, profile?.id);
         if ((effectiveLeetCodeUsername || '') !== (username || '')) {
             void updateProfile({ leetCodeUrl: username });
         }
-    }, [effectiveLeetCodeUsername, updateProfile]);
+    }, [effectiveLeetCodeUsername, profile?.id, updateProfile]);
 
     const handleGithubDisconnect = useCallback(() => {
         setGithubUsername((prev) => (prev === null ? prev : null));
@@ -190,11 +201,11 @@ export default function SettingsPage() {
 
     const handleLeetCodeDisconnect = useCallback(() => {
         setLeetCodeUsername((prev) => (prev === null ? prev : null));
-        leetcodeApi.clearStoredUsername();
+        leetcodeApi.clearStoredUsername(profile?.id);
         if (effectiveLeetCodeUsername) {
             void updateProfile({ leetCodeUrl: '' });
         }
-    }, [effectiveLeetCodeUsername, updateProfile]);
+    }, [effectiveLeetCodeUsername, profile?.id, updateProfile]);
 
     return (
         <div className="space-y-6">
@@ -362,7 +373,7 @@ export default function SettingsPage() {
                                                 className="inline-flex"
                                                 aria-label={`Remove ${skill}`}
                                             >
-                                                <Badge variant="default" className="gap-1 rounded-full bg-teal-100 text-teal-800 hover:bg-teal-200">
+                                                <Badge variant="default" className="skill-chip-selected gap-1 rounded-full">
                                                     {skill}
                                                     <X className="h-3 w-3" />
                                                 </Badge>

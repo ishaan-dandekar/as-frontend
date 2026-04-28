@@ -22,6 +22,7 @@ type BackendTeam = {
     member_count?: number;
     capacity?: number;
     search_keywords?: string[];
+    current_user_join_state?: Team['joinState'];
 };
 
 type BackendJoinRequestItem = {
@@ -79,6 +80,7 @@ function mapTeam(team: BackendTeam): Team {
         capacity: Number(team.capacity || 0),
         teamMemberCount: Number(team.member_count || members.length),
         teamCapacity: Number(team.capacity || 0),
+        joinState: team.current_user_join_state || 'IDLE',
     };
 }
 

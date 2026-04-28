@@ -40,6 +40,40 @@ npm run dev
 
 Open http://localhost:3000
 
+### Test From Another PC On The Same Network
+
+1. Find this machine's LAN IP, for example `192.168.1.10`.
+2. Set `NEXT_PUBLIC_API_URL` in `.env.local` to that IP:
+
+```env
+NEXT_PUBLIC_API_URL=http://192.168.1.10:8000/api
+NEXT_PUBLIC_ENABLE_MOCK_API=false
+```
+
+3. Start the frontend so it listens on all interfaces:
+
+```bash
+npm run dev:lan
+```
+
+4. Start the backend from `as-backend`:
+
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+5. Open the site from the other PC:
+
+```text
+http://192.168.1.10:3000
+```
+
+Notes:
+
+- Both devices must be on the same network.
+- Allow ports `3000` and `8000` through your firewall if needed.
+- For OAuth flows like Google/GitHub, callback URLs may still need to be updated if you want full cross-device auth testing.
+
 ## Available Scripts
 
 - `npm run dev` - start development server

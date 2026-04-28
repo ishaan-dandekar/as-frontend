@@ -17,6 +17,7 @@ type BackendProject = {
     github_url?: string | null;
     live_url?: string | null;
     is_bookmarked?: boolean;
+    current_user_join_state?: Project['joinState'];
     created_at?: string;
     updated_at?: string;
 };
@@ -50,6 +51,7 @@ function mapProject(project: BackendProject): Project {
         githubUrl: project.github_url || undefined,
         liveUrl: project.live_url || undefined,
         isBookmarked: !!project.is_bookmarked,
+        joinState: project.current_user_join_state || 'IDLE',
         createdAt: project.created_at || new Date().toISOString(),
         updatedAt: project.updated_at || new Date().toISOString(),
     };
